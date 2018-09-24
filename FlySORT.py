@@ -16,25 +16,22 @@ from global_draw import draw_global_results, add_thumbnails
 from data_logging import TrialLogger, manage_history
 from select_arena_roi import launch_GUI, mask_frame
 from info_panel import generate_info_panel
+import config
+import arduino_interface as ard
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-r", "--rec", help="Save video to .AVI file? [T/F]", required=True)
-parser.add_argument("-l", "--log", help="Save data to .CSV file? [T/F]", required=True)
-parser.add_argument("--n", help="Total number of animals in trial [int]", required=True)
-args = vars(parser.parse_args())
+cd = config.get_config()
 
-if (args['rec'] == "T") or (args['rec'] == "t") or (args['rec'] == "true") or (args['rec'] == "True"):
-	recording = True
-else:
-	recording = False
-
-if (args['log'] == "T") or (args['log'] == "t") or (args['log'] == "true") or (args['log'] == "True"):
-	logging = True
-else:
-	recording = False
-
-n_inds = int(args['n'])
-
+input_vidpath = cd['path']
+recording = cd['record']
+logging = cd['log']
+arduino = cd['arduino']
+comm = cd['comm']
+baud = cd['baud']
+display = cd['display']
+n_inds = cd['n_inds']
+heading = cd['heading']
+wings = cd['wings']
+ifd_on = cd['IFD']
 
 #Define parameters
 colours = [(0,255,0),(0,255,255),(255,0,255),(255,255,255),(255,255,0),(0,0,255),(255,0,0),(0,0,0)]
@@ -44,12 +41,6 @@ thresh_val = 85			# Threhold value, to be calculated automatically later
 scaling = 0.8			# Scaling: Reduce dimensions
 p2a = 0.6				# Perimeter to area ratio to eliminate non-fly contours
 mot=True
-
-# name of source video and paths
-video = 'short'
-input_vidpath = 'C:/Users/Patrick/Desktop/fly_videos/' + video + '.mp4'
-output_vidpath = 'C:/Users/Patrick/Documents/fly_sort/' + video + '_tracked.avi'
-output_filepath = 'C:/Users/Patrick/Documents/fly_sort/' + video + '_tracked.csv'
 
 # Individual location(s) measured in the last and current step [x,y]
 meas_last = list(np.zeros((n_inds,4)))
@@ -149,7 +140,6 @@ if go_bit=='y' or go_bit=="Y":
 				history = manage_history(history, pixel_meas, 200, init=False)
 
 
-
 			# Create patches and Pass/Fail signal for each detected centroid
 			#patches, rets = ip.extract_image_patches(cl_frame, pixel_meas, [40,40])
 			
@@ -170,6 +160,12 @@ if go_bit=='y' or go_bit=="Y":
 						"heading": angles}
 
 			vis = generate_info_panel(new_frame, info_dict, vis_shape)
+
+			if arduino==True:
+				if frame_count==0:
+					ser = ard.init_serial(comm, baud)
+				ard.lights(ser, ifd, 50, 1.0, 10.0)
+
 
 			# Show present frame. Suppress to improve realtime speed
 			cv2.imshow("FlySORT", vis)
