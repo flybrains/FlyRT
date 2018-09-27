@@ -2,16 +2,13 @@ import serial
 import time
 
 def init_serial(comm_port, baud):
-	return serial.Serial(comm_port, baud, timeout=0)
+	return serial.Serial(comm_port, baud)
 
-def lights(ser, ifd, thresh, flash_t, wait_t)
+def lights(ser, ifd, thresh):
 	
-	if ifd < thresh:
-		ser.write('1')
-		time.sleep(flash_t)
-		ser.write('0')
-
+	if (ifd < thresh):
+		ser.write(str.encode('1'))
 	else:
-		ser.write('0')
+		ser.write(str.encode('0'))
 
 	return None

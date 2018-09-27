@@ -1,16 +1,22 @@
 import cv2
 import numpy as np
 import numpy.ma as ma
+import time
+import flycapture2 as fc2
 
 
 def launch_GUI(input_vidpath):
 
+	time.sleep(10)
+
 	cap = cv2.VideoCapture(input_vidpath)
+
+	time.sleep(10)
 
 	ret, frame = cap.read()
 
 	if ret==True:
-		im = frame
+		im = frame.copy()
 	cap.release()
 
 	r = cv2.selectROI(im, fromCenter=False)
@@ -36,9 +42,11 @@ def launch_GUI(input_vidpath):
 	c = cy - spread
 	d = cy + spread
 
-	crop =  frame[c:d, a:b]
+	crop =  im[c:d, a:b]
 
 	return mask, r, crop
+
+
 
 def mask_frame(frame, mask, r, mask_on=True, crop_on=True):
 

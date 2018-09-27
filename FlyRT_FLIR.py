@@ -14,7 +14,7 @@ import metrics
 from global_draw import draw_global_results, add_thumbnails
 import data_logger as dl
 from data_logger import Logger
-from select_arena_roi import launch_GUI, mask_frame
+from select_flir_gui import flirGui
 from info_panel import generate_info_panel
 import config
 import arduino_interface as ard
@@ -22,6 +22,7 @@ from set_threshold import set_threshold
 import utils
 from datetime import datetime
 import serial
+import flycapture2 as fc2
 
 # Read and set configs
 cd = config.get_config()
@@ -57,18 +58,19 @@ meas_now = list(np.zeros((n_inds,4)))
 system('cls')
 
 # Launch ROI selection GUI
-mask, r, crop = launch_GUI(input_vidpath)
+mask, r, crop = flirGui(0)
 
 # Launch threshold selector utility
 thresh_val = set_threshold(crop, auto_thresh, IR)
 
-#system('cls')
+cap = fc2.Context()
+cap.connect(*cap.get_camera_from_index(0))
+cap.set_video_mode_and_frame_rate(fc2.VIDEOMODE_640x480Y8, fc2.FRAMERATE_30)
+m, f = cap.get_video_mode_and_frame_rate()
+p = cap.get_property(fc2.FRAME_RATE)
+cap.set_property(**p)
+cap.start_capture()
 
-## Open video
-cap = cv2.VideoCapture(input_vidpath)
-
-if cap.isOpened() == False:
-    sys.exit('Video file cannot be read! Please check input_vidpath to ensure it is correctly pointing to the video file')
 
 # Conditionally start Arduino Serial communication
 if arduino==True:
@@ -118,6 +120,8 @@ old_angles = [0,0]
 
 # Pause and wait for user start after ROI select
 #system('cls')
+
+
 go_bit = input("Start Tracking:[Y/n]?")
 if go_bit=='y' or go_bit=="Y":
 
@@ -126,99 +130,95 @@ if go_bit=='y' or go_bit=="Y":
 
 	while(True):
 	    # Capture frame-by-frame
-		ret, frame = cap.read()
-		this = cap.get(1)
-		
-		if ret == True:
+		img = fc2.Image()
+		cap.retrieve_buffer(img)
+		frame = np.array(img)
+		frame = np.expand_dims(frame, 2)
 
-			#ROI Selection
-			frame = mask_frame(frame, mask, r, mask_on=False, crop_on=True)
+		cl_frame = cv2.cvtColor(frame,cv2.COLOR_GRAY2RGB)
 
-			# +++++++++++++++++++++++++++++++++++++++++
-			# WarmUp Sequence
-			warm_up_complete = False
+		cl_frame = cv2.resize(cl_frame, None, fx = scaling, fy = scaling, interpolation = cv2.INTER_LINEAR)
+		bw_frame = cv2.cvtColor(cl_frame, cv2.COLOR_BGR2GRAY)
 
-			#Resize & keep color frame, make BW frame
-			cl_frame = cv2.resize(frame, None, fx = scaling, fy = scaling, interpolation = cv2.INTER_LINEAR)
-			bw_frame = cv2.cvtColor(cl_frame, cv2.COLOR_BGR2GRAY)
+		# Get thresholded frame using modified tracktor library
+		thresh = tr.colour_to_thresh(bw_frame, thresh_val)
 
-			# Get thresholded frame using modified tracktor library
-			thresh = tr.colour_to_thresh(bw_frame, thresh_val)
+		# Contour detection
+		final, contours, meas_last, meas_now = tr.detect_and_draw_contours(cl_frame, thresh, meas_last, meas_now, p2a)
 
-			# Contour detection
-			final, contours, meas_last, meas_now = tr.detect_and_draw_contours(cl_frame, thresh, meas_last, meas_now, p2a)
-
-			# Operations to preserve identity and extract centroid coords
-			row_ind, col_ind, old_meas, old_ind = tr.hungarian_algorithm(meas_last, meas_now, old_meas, old_ind)
-			final, meas_now, df = tr.reorder_and_draw(final, colours, n_inds, col_ind, meas_now, df, mot, this)
-			pixel_meas = [[int(meas[0]), int(meas[1])] for meas in meas_now]
+		# Operations to preserve identity and extract centroid coords
+		row_ind, col_ind, old_meas, old_ind = tr.hungarian_algorithm(meas_last, meas_now, old_meas, old_ind)
+		final, meas_now, df = tr.reorder_and_draw(final, colours, n_inds, col_ind, meas_now, df, mot, frame_count)
+		pixel_meas = [[int(meas[0]), int(meas[1])] for meas in meas_now]
 
 
-			# Manage centroid tracking history 
-			if frame_count==0:
-				history = dl.manage_history(None, pixel_meas, 200, init=True)
-			else:
-				history = dl.manage_history(history, pixel_meas, 200, init=False)
-
-
-			# Create patches and Pass/Fail signal for each detected centroid
-			#patches, rets = ip.extract_image_patches(cl_frame, pixel_meas, [40,40])
-			
-			global_results = None
-			new_frame = draw_global_results(cl_frame, meas_now, colours, history, DL=False, traces=True, heading=False)
-
-			#new_frame = add_thumbnails(cl_frame, patches, results, colours)
-
-			ifd, old_ifd = metrics.ifd(pixel_meas, old_ifd, 0.5)
-
-			angles, old_angles = metrics.relative_angle(meas_now, old_angles)
-
-			info_dict ={"frame_count": frame_count,
-						"fps_calc": fps_calc,
-						"logging":logging,
-						"ifd": ifd,
-						"recording": recording,
-						"heading": angles}
-
-			vis = generate_info_panel(new_frame, info_dict, vis_shape)
-
-			if arduino==True:
-				ard.lights(ser, ifd, ifd_min)
-				
-
-			# Show present frame. Suppress to improve realtime speed
-			cv2.imshow("FlySORT", vis)
-			
-			# Write to .avi
-			if recording==True:
-				out.write(vis)
-
-
-			# FPS Calcs
-			fps = True
-			time1 = time.time() - time0
-			
-			fps_calc = float(frame_count/time1)
-
-			# Write current measurment and calcs to CSV
-			if logging == True:
-				logger.write_meas(frame_count, time1, pixel_meas[0:n_inds], ifd)
-
-
-			if fps==True:
-				#print(fps_calc)
-				pass
-
-
-			frame_count+=1
-			# Video keyboard interrupt
-			if cv2.waitKey(1) & 0xFF == ord('q'):
-				break
+		# Manage centroid tracking history 
+		if frame_count==0:
+			history = dl.manage_history(None, pixel_meas, 200, init=True)
 		else:
+			history = dl.manage_history(history, pixel_meas, 200, init=False)
+
+
+		# Create patches and Pass/Fail signal for each detected centroid
+		#patches, rets = ip.extract_image_patches(cl_frame, pixel_meas, [40,40])
+		
+		global_results = None
+		new_frame = draw_global_results(cl_frame, meas_now, colours, history, DL=False, traces=True, heading=False)
+
+		#new_frame = add_thumbnails(cl_frame, patches, results, colours)
+
+		ifd, old_ifd = metrics.ifd(pixel_meas, old_ifd, 0.5)
+
+		#angles, old_angles = metrics.relative_angle(meas_now, old_angles)
+
+		info_dict ={"frame_count": frame_count,
+					"fps_calc": fps_calc,
+					"logging":logging,
+					"ifd": ifd,
+					"recording": recording}
+					#"heading": angles}
+		
+		vis = generate_info_panel(new_frame, info_dict, vis_shape)
+
+		if arduino==True:
+			ard.lights(ser, ifd, ifd_min)
+			
+
+		# Show present frame. Suppress to improve realtime speed
+		cv2.imshow("FlySORT", vis)
+		
+		# Write to .avi
+		if recording==True:
+			out.write(vis)
+
+
+		# FPS Calcs
+		fps = True
+		time1 = time.time() - time0
+		
+		fps_calc = float(frame_count/time1)
+
+		# Write current measurment and calcs to CSV
+		if logging == True:
+			logger.write_meas(frame_count, time1, pixel_meas[0:n_inds], ifd)
+
+
+		if fps==True:
+			#print(fps_calc)
+			pass
+
+
+		frame_count+=1
+		# Video keyboard interrupt
+		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
 
+
 	logger.close_writer()
-	cap.release()
+	
+	cap.stop_capture()
+	cap.disconnect()
+
 	if recording==True:
 		out.release()
 	cv2.destroyAllWindows()
