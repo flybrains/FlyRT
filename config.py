@@ -2,7 +2,7 @@
 FLYSORT_CONFIG = {
 	
 	# I/O
-	"path":			0,#"C:/Users/Patrick/Desktop/fly_videos/test1.mp4",
+	"path":			"C:/Users/Patrick/Desktop/vids_to_analyze/full_no_cop.mp4",
 	"record": 		True,
 	"log": 			True,
 	"arduino":		True,

@@ -3,9 +3,17 @@ import cv2
 
 def generate_info_panel(frame, data_dict, vis_shape):
 
-	info = np.zeros((frame.shape[0], int((frame.shape[0])*0.5), 3), np.uint8)
+	max_pixel = 210
 
-	base = int(frame.shape[0]*0.5)
+	if frame.shape[0]>max_pixel:
+	    info = np.zeros((frame.shape[0], int((frame.shape[0])*0.5), 3), np.uint8)
+	    padding=False
+	else:
+	    info = np.zeros((max_pixel, 220, 3), np.uint8)
+	    pad = np.zeros((max_pixel - frame.shape[0], (frame.shape[0]), 3), np.uint8)
+	    padding = True
+
+	base = 80
 
 	time_string = "  Trial Time: " + "{:.2f}".format(float(data_dict['frame_count']/30)) + "s"
 	fps_string = "  Processing fps: " + "{:.2f}".format(data_dict['fps_calc'])
@@ -38,13 +46,30 @@ def generate_info_panel(frame, data_dict, vis_shape):
 
 	# ============================================================================================================
 
-	h1, w1 = frame.shape[:2]
-	h2, w2 = info.shape[:2]
+	if padding==True:
+		h1, w1 = frame.shape[:2]
+		h2, w2 = pad.shape[:2]
+		tile1 = np.zeros((max(h1, h2), w2, 3), np.uint8)
 
-	vis = np.zeros((max(h1, h2), w1+w2,3), np.uint8)
+		tile1[:h1,:w1, :3] = frame
 
-	vis[:h1, :w1,:3] = frame
-	vis[:h2, w1:w1+w2,:3] = info
+		h3, w3 = tile1.shape[:2]
+		h4, w4 = info.shape[:2]
+
+		vis = np.zeros((max(h3, h4), w3+w4,3), np.uint8)
+
+		vis[:h3, :w3,:3] = tile1
+		vis[:h4, w3:w3+w4,:3] = info
+
+	else:
+		h1, w1 = frame.shape[:2]
+		h2, w2 = info.shape[:2]
+
+		vis = np.zeros((max(h1, h2), w1+w2,3), np.uint8)
+
+		vis[:h1, :w1,:3] = frame
+		vis[:h2, w1:w1+w2,:3] = info
+
 
 	if vis.shape != vis_shape:
 		vis = cv2.resize(vis, (vis_shape[1], vis_shape[0]))

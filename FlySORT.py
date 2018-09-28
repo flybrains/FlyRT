@@ -75,14 +75,36 @@ if arduino==True:
 	ser = ard.init_serial(comm, baud)
 	time.sleep(2)
 
-# Determine final output frame size
-info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
-h1, w1 = crop.shape[:2]
-h2, w2 = info.shape[:2]
+max_pixel = 210
 
-vis = np.zeros((max(h1, h2), w1+w2,3), np.uint8)
-vis[:h1, :w1,:3] = crop
-vis[:h2, w1:w1+w2,:3] = info
+# Determine final output frame size
+if crop.shape[0]>max_pixel:
+    info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
+    padding=False
+else:
+    info = np.zeros((max_pixel, 220, 3), np.uint8)
+    pad = np.zeros((max_pixel - crop.shape[0], (crop.shape[0]), 3), np.uint8)
+    padding=True
+
+if padding==True:
+	h1, w1 = crop.shape[:2]
+	h2, w2 = pad.shape[:2]
+	tile1 = np.zeros((max(h1, h2), w2, 3), np.uint8)
+	tile1[:h1,:w1, :3] = crop
+	h3, w3 = tile1.shape[:2]
+	h4, w4 = info.shape[:2]
+	vis = np.zeros((max(h3, h4), w3+w4,3), np.uint8)
+	vis[:h3, :w3,:3] = tile1
+	vis[:h4, w3:w3+w4,:3] = info
+else:
+	info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
+	h1, w1 = crop.shape[:2]
+	h2, w2 = info.shape[:2]
+
+	vis = np.zeros((max(h1, h2), w1+w2,3), np.uint8)
+	vis[:h1, :w1,:3] = crop
+	vis[:h2, w1:w1+w2,:3] = info
+
 
 vis = cv2.resize(vis, None, fx = scaling, fy = scaling, interpolation = cv2.INTER_LINEAR)
 vis_shape = vis.shape
@@ -97,7 +119,7 @@ fps_calc = 0
 if logging==True:
 	logger = dl.Logger()
 	logger.create_outfile()
-	logger.write_header(frame_count, n_inds)
+	logger.write_header(frame_count, n_inds, ifd=True, headings = True)
 
 
 # Use calculated shape to initialize writer
@@ -182,6 +204,8 @@ if go_bit=='y' or go_bit=="Y":
 
 			vis = generate_info_panel(new_frame, info_dict, vis_shape)
 
+			print(vis.shape)
+
 			if arduino==True:
 				ard.lights(ser, ifd, ifd_min)
 				
@@ -202,7 +226,7 @@ if go_bit=='y' or go_bit=="Y":
 
 			# Write current measurment and calcs to CSV
 			if logging == True:
-				logger.write_meas(frame_count, time1, pixel_meas[0:n_inds], ifd)
+				logger.write_meas(frame_count, time1, pixel_meas[0:n_inds], ifd, angles)
 
 
 			if fps==True:
