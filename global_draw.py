@@ -24,7 +24,7 @@ def draw_global_results(img, meas_now, colours, history, DL = False, wings=False
                         pass
         return new_frame
         
-
+    
     for i in range(2):
         
         if len(history)>1:
@@ -62,6 +62,12 @@ def draw_global_results(img, meas_now, colours, history, DL = False, wings=False
             
             except IndexError:
                     pass
+
+        
+    # try:
+    #     new_frame
+    # except NameError:
+    #     new_frame = np.zeros(img.shape, np.uint8)
 
     return new_frame
 

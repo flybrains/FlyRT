@@ -7,11 +7,11 @@ import flycapture2 as fc2
 
 def launch_GUI(input_vidpath):
 
-	time.sleep(10)
+	time.sleep(1)
 
 	cap = cv2.VideoCapture(input_vidpath)
 
-	time.sleep(10)
+	time.sleep(1)
 
 	ret, frame = cap.read()
 

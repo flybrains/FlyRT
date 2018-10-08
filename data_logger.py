@@ -37,9 +37,8 @@ class Logger(object):
 			header.append("IFD")
 
 		if headings:
-			for i in range(n_inds):
-				header.append("1:2_angle_(deg)")
-				header.append("2:1_angle_(deg)")
+			header.append("1:2_angle_(deg)")
+			header.append("2:1_angle_(deg)")
 
 		self.writer.writerow(header)
 

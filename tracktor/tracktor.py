@@ -7,8 +7,6 @@ from scipy.spatial.distance import cdist
 
 import sys
 sys.path.insert(0, "C:/Users/Patrick/Documents/fly_sort")
-from image_patch import extract_image_patches
-from fly_discriminator import determine_fly
 
 def colour_to_thresh(frame, thresh_val):
     """
@@ -89,8 +87,12 @@ def detect_and_draw_contours(frame, thresh, meas_last, meas_now, p2a_thresh):
             area=0.001
         p2a = float((cv2.arcLength(contours[i],True))/(area))
 
-        if (p2a > p2a_thresh) or (area > 10000):
+        if (p2a > p2a_thresh):
             del contours[i]
+
+        elif (area > 1000):
+            del contours[i]
+
         else:
             M = cv2.moments(contours[i])
             if M['m00'] != 0:

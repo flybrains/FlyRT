@@ -3,7 +3,7 @@ import cv2
 
 def generate_info_panel(frame, data_dict, vis_shape):
 
-	max_pixel = 210
+	max_pixel = 210*2
 
 	if frame.shape[0]>max_pixel:
 	    info = np.zeros((frame.shape[0], int((frame.shape[0])*0.5), 3), np.uint8)
@@ -43,6 +43,8 @@ def generate_info_panel(frame, data_dict, vis_shape):
 	# info = cv2.putText(info, h1_string, (10, base+125), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
 	# info = cv2.putText(info, h2_string, (10, base+140), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
 	# info = cv2.putText(info, h3_string, (10, base+155), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
+
+	info = cv2.putText(info, 'Video6', (10, base+155), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
 
 	# ============================================================================================================
 

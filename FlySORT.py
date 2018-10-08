@@ -6,155 +6,147 @@ import cv2
 import sys
 import time
 from os import system
+import config
 
 import  tracktor  as tr
 
-import image_patch as ip
 import metrics
 from global_draw import draw_global_results, add_thumbnails
 import data_logger as dl
 from data_logger import Logger
 from select_arena_roi import launch_GUI, mask_frame
 from info_panel import generate_info_panel
-import config
 import arduino_interface as ard
-from set_threshold import set_threshold
 import utils
 from datetime import datetime
 import serial
 
-# Read and set configs
-cd = config.get_config()
+def fly_rt(cd, crop, r, mask):
 
-input_vidpath = cd['path']
-recording = 	cd['record']
-logging = 		cd['log']
-arduino = 		cd['arduino']
-comm = 			cd['comm']
-baud = 			cd['baud']
-display = 		cd['display']
-n_inds = 		cd['n_inds']
-heading = 		cd['heading']
-wings = 		cd['wings']
-ifd_on = 		cd['IFD']
-scaling = 		cd['scaling']
-auto_thresh = 	cd['auto_thresh']
-IR = 			cd['IR']
-mot = 			cd['mot']
-p2a = 			cd['p2a']
-flash_dur = 	cd['flash_dur']
-lockout_t = 	cd['lockout_t']
-ifd_min = 		cd['ifd_min']
+	# Read and set configs
 
+	input_vidpath = str(cd['path'])
+	recording = 	bool(cd['record'])
+	logging = 		bool(cd['log'])
+	# arduino = 		cd['arduino']
+	# comm = 			cd['comm']
+	# baud = 			cd['baud']
 
-#Define parameters
-colours = [(0,255,0),(0,255,255),(255,0,255),(255,255,255),(255,255,0),(0,0,255),(255,0,0),(0,0,0)]
+	n_inds = 		int(cd['n_inds'])
+	heading = 		bool(cd['heading'])
+	wings = 		bool(cd['wings'])
+	ifd_on = 		bool(cd['IFD'])
+	scaling = 		float(cd['scaling'])
+	IR = 			bool(cd['IR'])
+	arena_mms = 	cd['arena_mms']
+	thresh_val = 	cd['thresh_val']
+	mask_on = 		bool(cd['mask_on'])
 
-# Individual location(s) measured in the last and current step [x,y]
-meas_last = list(np.zeros((n_inds,4)))
-meas_now = list(np.zeros((n_inds,4)))
+	stop_bit = False
 
-system('cls')
+	# flash_dur = 	cd['flash_dur']
+	# lockout_t = 	cd['lockout_t']
+	# ifd_min = 		cd['ifd_min']
+	mot=True
+	p2a = 0.5
 
-# Launch ROI selection GUI
-mask, r, crop = launch_GUI(input_vidpath)
+	# if arduino==True:
+	# 	ser = ard.init_serial(comm, baud)
+	# 	time.sleep(2)
 
-# Launch threshold selector utility
-thresh_val = set_threshold(crop, auto_thresh, IR)
+	max_pixel = 210*2
 
-#system('cls')
+	# Determine final output frame size
+	if crop.shape[0]>max_pixel:
+	    info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
+	    padding=False
+	else:
+	    info = np.zeros((max_pixel, 220, 3), np.uint8)
+	    pad = np.zeros((max_pixel - crop.shape[0], (crop.shape[0]), 3), np.uint8)
+	    padding=True
 
-## Open video
-cap = cv2.VideoCapture(input_vidpath)
+	if padding==True:
+		h1, w1 = crop.shape[:2]
+		h2, w2 = pad.shape[:2]
+		tile1 = np.zeros((max(h1, h2), w2, 3), np.uint8)
+		tile1[:h1,:w1, :3] = crop
+		h3, w3 = tile1.shape[:2]
+		h4, w4 = info.shape[:2]
+		vis = np.zeros((max(h3, h4), w3+w4,3), np.uint8)
+		vis[:h3, :w3,:3] = tile1
+		vis[:h4, w3:w3+w4,:3] = info
+	else:
+		info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
+		h1, w1 = crop.shape[:2]
+		h2, w2 = info.shape[:2]
 
-if cap.isOpened() == False:
-    sys.exit('Video file cannot be read! Please check input_vidpath to ensure it is correctly pointing to the video file')
-
-# Conditionally start Arduino Serial communication
-if arduino==True:
-	ser = ard.init_serial(comm, baud)
-	time.sleep(2)
-
-max_pixel = 210
-
-# Determine final output frame size
-if crop.shape[0]>max_pixel:
-    info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
-    padding=False
-else:
-    info = np.zeros((max_pixel, 220, 3), np.uint8)
-    pad = np.zeros((max_pixel - crop.shape[0], (crop.shape[0]), 3), np.uint8)
-    padding=True
-
-if padding==True:
-	h1, w1 = crop.shape[:2]
-	h2, w2 = pad.shape[:2]
-	tile1 = np.zeros((max(h1, h2), w2, 3), np.uint8)
-	tile1[:h1,:w1, :3] = crop
-	h3, w3 = tile1.shape[:2]
-	h4, w4 = info.shape[:2]
-	vis = np.zeros((max(h3, h4), w3+w4,3), np.uint8)
-	vis[:h3, :w3,:3] = tile1
-	vis[:h4, w3:w3+w4,:3] = info
-else:
-	info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
-	h1, w1 = crop.shape[:2]
-	h2, w2 = info.shape[:2]
-
-	vis = np.zeros((max(h1, h2), w1+w2,3), np.uint8)
-	vis[:h1, :w1,:3] = crop
-	vis[:h2, w1:w1+w2,:3] = info
+		vis = np.zeros((max(h1, h2), w1+w2,3), np.uint8)
+		vis[:h1, :w1,:3] = crop
+		vis[:h2, w1:w1+w2,:3] = info
 
 
-vis = cv2.resize(vis, None, fx = scaling, fy = scaling, interpolation = cv2.INTER_LINEAR)
-vis_shape = vis.shape
+	vis = cv2.resize(vis, None, fx = scaling, fy = scaling, interpolation = cv2.INTER_LINEAR)
+	vis_shape = vis.shape
 
-utils.file_ops()
+	utils.file_ops()
 
-# Initialize frame counter
-frame_count = 0
-fps_calc = 0
+	# Initialize frame counter
+	frame_count = 0
+	fps_calc = 0
 
-# Start csv logger
-if logging==True:
-	logger = dl.Logger()
-	logger.create_outfile()
-	logger.write_header(frame_count, n_inds, ifd=True, headings = True)
+	# Start csv logger
+	if logging==True:
+		logger = dl.Logger()
+		logger.create_outfile()
+		logger.write_header(frame_count, n_inds, ifd=True, headings = True)
 
 
-# Use calculated shape to initialize writer
-if recording==True:
-	dt = datetime.now()
-	out = cv2.VideoWriter("generated_data/movies/"+str(dt.month)+"_"+str(dt.day)+"_"+str(dt.year)+"_"+str(dt.hour)+str(dt.minute)+'.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (vis.shape[1], vis.shape[0]), True)
+	# Use calculated shape to initialize writer
+	if recording==True:
+		dt = datetime.now()
+		out = cv2.VideoWriter("generated_data/movies/"+str(dt.month)+"_"+str(dt.day)+"_"+str(dt.year)+"_"+str(dt.hour)+str(dt.minute)+'.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (vis.shape[1], vis.shape[0]), True)
 
-# Diff calculation initialization
-last = 0
-df = []
 
-# Initialize backup values for error-prone functions
-last_good_list = None
-old_meas = [[meas_last, meas_now]]
-old_ind = [None]
-old_ifd = 0
-old_angles = [0,0]
 
-# Pause and wait for user start after ROI select
-#system('cls')
-go_bit = input("Start Tracking:[Y/n]?")
-if go_bit=='y' or go_bit=="Y":
+	# Diff calculation initialization
+	last = 0
+	df = []
+
+	colours = [(0,255,0),(0,255,255),(255,0,255),(255,255,255),(255,255,0),(0,0,255),(255,0,0),(0,0,0)]
+
+	# Initialize backup values for error-prone functions
+	# Individual location(s) measured in the last and current step [x,y]
+	meas_last = list(np.zeros((n_inds,4)))
+	meas_now = list(np.zeros((n_inds,4)))
+
+	last_good_list = None
+	old_meas = [[meas_last, meas_now]]
+	old_ind = [None]
+	old_ifd = 0
+	old_angles = [0,0]
+
+
+	## Open video
+	cap = cv2.VideoCapture(input_vidpath)
+
+	if cap.isOpened() == False:
+		sys.exit('Video file cannot be read! Please check input_vidpath to ensure it is correctly pointing to the video file')
+
 
 	# Initialize time
 	time0 = time.time()
+
 
 	while(True):
 	    # Capture frame-by-frame
 		ret, frame = cap.read()
 		this = cap.get(1)
 		
+
 		if ret == True:
 
 			#ROI Selection
-			frame = mask_frame(frame, mask, r, mask_on=False, crop_on=True)
+			frame = mask_frame(frame, mask, r, mask_on, crop_on=True)
 
 			# +++++++++++++++++++++++++++++++++++++++++
 			# WarmUp Sequence
@@ -204,10 +196,10 @@ if go_bit=='y' or go_bit=="Y":
 
 			vis = generate_info_panel(new_frame, info_dict, vis_shape)
 
-			print(vis.shape)
+			#print(vis.shape)
 
-			if arduino==True:
-				ard.lights(ser, ifd, ifd_min)
+			# if arduino==True:
+			# 	ard.lights(ser, ifd, ifd_min)
 				
 
 			# Show present frame. Suppress to improve realtime speed
@@ -226,7 +218,7 @@ if go_bit=='y' or go_bit=="Y":
 
 			# Write current measurment and calcs to CSV
 			if logging == True:
-				logger.write_meas(frame_count, time1, pixel_meas[0:n_inds], ifd, angles)
+				logger.write_meas(frame_count, float(frame_count/30), pixel_meas[0:n_inds], ifd, angles)
 
 
 			if fps==True:
@@ -235,9 +227,11 @@ if go_bit=='y' or go_bit=="Y":
 
 
 			frame_count+=1
-			# Video keyboard interrupt
-			if cv2.waitKey(1) & 0xFF == ord('q'):
+
+			stop_bit = config.stop_bit
+			if cv2.waitKey(1) & (stop_bit==True):
 				break
+
 		else:
 			break
 
@@ -247,3 +241,8 @@ if go_bit=='y' or go_bit=="Y":
 		out.release()
 	cv2.destroyAllWindows()
 	cv2.waitKey()
+
+	return None
+
+
+
