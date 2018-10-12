@@ -16,13 +16,14 @@ def generate_info_panel(frame, data_dict, vis_shape):
 	base = 80
 
 	time_string = "  Trial Time: " + "{:.2f}".format(float(data_dict['frame_count']/30)) + "s"
-	fps_string = "  Processing fps: " + "{:.2f}".format(data_dict['fps_calc'])
+	fps_string = "  Processing fps: " + "{:.2f}".format(float(data_dict['fps_calc']))
 
 	log_string = "  Logging: " + str(data_dict['logging'])
 
-	ifd_string = "Inter-Fly Distance: " +  "{:.2f}".format(data_dict['ifd']) + "pp"
+	ifd_string = "Inter-Fly Distance: " +  "{:.2f}".format(float(data_dict['ifd'])) + "mm"
 
 	rec_string = "  Recording: " + str(data_dict['recording'])
+
 
 	# h1_string = "Headings: "
 	# h2_string = "  One-to-Two: " + "{:.2f}".format(data_dict['heading'][0])
@@ -30,7 +31,7 @@ def generate_info_panel(frame, data_dict, vis_shape):
 
 
 	# ============================================================================================================
-	info = cv2.putText(info, "FlySORT", (6, 24), cv2.FONT_HERSHEY_DUPLEX , 0.8, (0,255,0), 1, cv2.LINE_AA)
+	info = cv2.putText(info, "FlyRT", (6, 24), cv2.FONT_HERSHEY_DUPLEX , 0.8, (0,255,0), 1, cv2.LINE_AA)
 
 	info = cv2.putText(info, "System Information:", (10, base+5), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
 	info = cv2.putText(info, time_string, (10, base+20), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
@@ -43,8 +44,7 @@ def generate_info_panel(frame, data_dict, vis_shape):
 	# info = cv2.putText(info, h1_string, (10, base+125), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
 	# info = cv2.putText(info, h2_string, (10, base+140), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
 	# info = cv2.putText(info, h3_string, (10, base+155), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
-
-	info = cv2.putText(info, 'Video6', (10, base+155), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
+	
 
 	# ============================================================================================================
 
