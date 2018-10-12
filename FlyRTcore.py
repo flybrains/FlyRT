@@ -20,7 +20,6 @@ import arduino_interface as ard
 import utils
 from datetime import datetime
 import serial
-import flycapture2 as fc2
 
 def run(cd, crop, r, mask):
 
@@ -32,11 +31,7 @@ def run(cd, crop, r, mask):
 
 	arduino = 		bool(cd['arduino'])
 	comm = 			str(cd['comm'])
-	baud = 			9600
-	ifd_min = 		float(cd['IFD_thresh'])
-	pulse_len = 	float(cd['pulse_len'])
-	pulse_lockout = float(cd['pulse_lockout'])
-
+	baud = 			int(cd['baud'])
 
 	n_inds = 		int(cd['n_inds'])
 	heading = 		bool(cd['heading'])
@@ -137,7 +132,6 @@ def run(cd, crop, r, mask):
 	old_ind = [None]
 	old_ifd = 0
 	old_angles = [0,0]
-	last_pulse_time=0
 
 
 	## Open video
@@ -230,8 +224,7 @@ def run(cd, crop, r, mask):
 			vis = generate_info_panel(new_frame, info_dict, vis_shape)
 
 			if arduino==True:
-				if ((time.time() - last_pulse_time) > pulse_lockout):
-					last_pulse_time = ard.lights(ser, ifd_mm, ifd_min, pulse_len)
+				ard.lights(ser, ifd, ifd_min)
 				
 
 			# Show present frame. Suppress to improve realtime speed

@@ -63,8 +63,7 @@ def launch_FLIR_GUI(idx):
 
 	im = frame.copy()
 
-	#im = np.expand_dims(im, 2)
-	im = cv2.cvtColor(im, cv2.COLOR_GRAY2BGR)
+	im = np.expand_dims(im, 2)
 	cap.stop_capture()
 	cap.disconnect()
 
