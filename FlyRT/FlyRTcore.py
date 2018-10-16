@@ -125,7 +125,6 @@ def hungarian_algorithm(meas_last, meas_now, old_meas, old_ind):
 
 def run(cd, crop, r, mask):
 
-	# Read and set configs
 
 	input_vidpath = str(cd['path'])
 	recording = 	bool(cd['record'])
@@ -134,6 +133,11 @@ def run(cd, crop, r, mask):
 	arduino = 		bool(cd['arduino'])
 	comm = 			str(cd['comm'])
 	baud = 			int(cd['baud'])
+	ifd_min = 		float(cd['IFD_thresh'])
+	pulse_len = 	float(cd['pulse_len'])
+	pulse_lockout = float(cd['pulse_lockout'])
+	ifd_time_thresh = float(['IFD_time_thresh'])
+
 
 	n_inds = 		int(cd['n_inds'])
 	heading = 		bool(cd['heading'])
@@ -234,6 +238,8 @@ def run(cd, crop, r, mask):
 	old_ind = [None]
 	old_ifd = 0
 	old_angles = [0,0]
+	last_pulse_time = 0
+	accum = 0
 
 
 	def capIm():
@@ -335,7 +341,9 @@ def run(cd, crop, r, mask):
 			vis = generate_info_panel(new_frame, info_dict, vis_shape)
 
 			if arduino==True:
-				ard.lights(ser, ifd, ifd_min)
+				if ((time.time() - last_pulse_time) > pulse_lockout):
+					last_pulse_time, accum = ard.lights(ser, ifd_mm, ifd_min, pulse_len, accum, IFD_time_thresh)
+
 				
 
 			# Show present frame. Suppress to improve realtime speed

@@ -536,7 +536,7 @@
     <property name="geometry">
      <rect>
       <x>600</x>
-      <y>210</y>
+      <y>240</y>
       <width>42</width>
       <height>21</height>
      </rect>
@@ -549,7 +549,7 @@
     <property name="geometry">
      <rect>
       <x>440</x>
-      <y>210</y>
+      <y>240</y>
       <width>101</width>
       <height>21</height>
      </rect>
@@ -562,7 +562,7 @@
     <property name="geometry">
      <rect>
       <x>650</x>
-      <y>210</y>
+      <y>240</y>
       <width>31</width>
       <height>21</height>
      </rect>
@@ -588,7 +588,7 @@
     <property name="geometry">
      <rect>
       <x>650</x>
-      <y>240</y>
+      <y>270</y>
       <width>31</width>
       <height>21</height>
      </rect>
@@ -601,7 +601,7 @@
     <property name="geometry">
      <rect>
       <x>440</x>
-      <y>240</y>
+      <y>270</y>
       <width>161</width>
       <height>21</height>
      </rect>
@@ -614,7 +614,7 @@
     <property name="geometry">
      <rect>
       <x>600</x>
-      <y>240</y>
+      <y>270</y>
       <width>42</width>
       <height>21</height>
      </rect>
@@ -732,7 +732,7 @@
     <property name="geometry">
      <rect>
       <x>420</x>
-      <y>280</y>
+      <y>310</y>
       <width>82</width>
       <height>17</height>
      </rect>
@@ -859,6 +859,45 @@
      <string notr="true">AnalysisButtonGroup</string>
     </attribute>
    </widget>
+   <widget class="QLabel" name="ArduinoPulseSpin_3">
+    <property name="geometry">
+     <rect>
+      <x>440</x>
+      <y>210</y>
+      <width>121</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Time Below Threshold</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="TimeBelowIFDThreshSpin">
+    <property name="geometry">
+     <rect>
+      <x>600</x>
+      <y>210</y>
+      <width>42</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="maximum">
+     <number>1000</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_17">
+    <property name="geometry">
+     <rect>
+      <x>650</x>
+      <y>210</y>
+      <width>31</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>sec</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -875,7 +914,7 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="AnalysisButtonGroup"/>
   <buttongroup name="RTExperimentButtonGroup"/>
+  <buttongroup name="AnalysisButtonGroup"/>
  </buttongroups>
 </ui>

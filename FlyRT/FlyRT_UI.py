@@ -94,6 +94,7 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         self.FlyRT_params['pulse_len'] = self.pulseLenSpin.value()
         self.FlyRT_params['pulse_lockout'] = self.arduinoLockoutTimeSpin.value()
         self.FlyRT_params['IFD_thresh'] = self.IFDThreshSpin.value()
+        self.FlyRT_params['IFD_time_thresh'] = self.TimeBelowIFDThreshSpin.value()
 
         if self.PostHocRadioButton.isChecked():
             self.FLIR = False
