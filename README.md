@@ -19,5 +19,5 @@ System tested on Windows 10 64-bit using:
 ## PyCapture2 Libraries
 To use FLIR Machine Vision cameras with this module, follow the following steps to integrate the proprietary Point Grey libaries and drivers.
 
-* Install the most recent version of Point Grey FlyCapture2 SDK from the following link:https://www.ptgrey.com/support/downloads
+* Install the most recent version of Point Grey FlyCapture2 SDK from the following link: https://www.ptgrey.com/support/downloads. This requires making an account with Point Grey. On Windows, these should be moved to `C:\Program Files` directory if not installed there automatically.
 * Install PyCapture2 2.11.425 (also from https://www.ptgrey.com/support/downloads) to the Python root directory. This will be a .msi installer. Run the installer and specify the root direcory. For example, if using the Anaconda distribution with FlyRT environment, the install location would be `../Anaconda3/envs/FlyRT`. 
