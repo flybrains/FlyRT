@@ -5,7 +5,7 @@ import threading
 def init_serial(comm_port, baud):
 	return serial.Serial(comm_port, baud)
 
-def lights(ser, ifd, thresh, pulse_len):
+def lights(ser, ifd, thresh, pulse_len, accum, IFD_time_thresh):
 
 	def send_command(pulse_len):
 		t_start = time.time()
@@ -17,8 +17,11 @@ def lights(ser, ifd, thresh, pulse_len):
 	send_thread = threading.Thread(target=send_command, args=(pulse_len,))
 
 	if (ifd < thresh):
-		send_thread.start()
+		accum = accum + float(1/30)
+		if accum > IFD_time_thresh:
+			send_thread.start()
 	else:
 		pass
+		accum = 0
 
-	return time.time()
+	return time.time(), accum
