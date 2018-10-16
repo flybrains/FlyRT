@@ -1,6 +1,8 @@
 ## FlyRT
 A simple real-time tracker for Drosophilia behavior experiments
 
+![](https://i.imgur.com/ZECicNf.jpg "Screengrab")
+
 ## Usage
 To launch GUI:
 `>> python FlyRT/FlyRT_UI.py`
