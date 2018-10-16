@@ -1,7 +1,7 @@
-# FlyRT
-a simple real-time tracker for drosophilia behavior experiments
+## FlyRT
+A simple real-time tracker for Drosophilia behavior experiments
 
-# H2 Usage
+## Usage
 To launch the GUI:
 `python FlyRT/FlyRT_UI.py`
 
