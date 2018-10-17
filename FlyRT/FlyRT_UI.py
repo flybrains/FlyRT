@@ -7,6 +7,7 @@ from PyQt5.QtGui import QIcon
 from os import system
 import os
 import config
+import numpy as np
 
 import select_arena_roi as saROI
 import FlyRTcore
@@ -136,6 +137,8 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         thresh_val = self.ThreshValueSpin.value()
 
         ret, thresh_img = cv2.threshold(img, thresh_val, 255,0)
+
+
         cv2.imshow("Threshold Value: {}".format(thresh_val), thresh_img)
         
         cv2.waitKey(0)
@@ -167,13 +170,15 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
             self.mask, self.r, self.crop = saROI.launch_GUI(self.inpath)
         else:
             self.mask, self.r, self.crop = saROI.launch_FLIR_GUI(self.idx)
-
         
 
     def get_param_dict(self):
         return self.FlyRT_params
 
     def start_tracking(self):
+        config.stop_bit = False
+        self.update_param_dict()
+
         try:
             if self.warning:
                 pass
@@ -186,10 +191,6 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 pass
 
-
-
-        config.stop_bit = False
-        self.update_param_dict()
  
         FlyRTcore.run(self.FlyRT_params, self.crop, self.r, self.mask)
         # try:

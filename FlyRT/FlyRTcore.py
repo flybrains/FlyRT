@@ -23,90 +23,102 @@ import serial
 import PyCapture2
 
 def color_to_thresh(frame, thresh_val):
-    ret, thresh = cv2.threshold(frame, thresh_val,255,0)
-    return thresh
+	ret, thresh = cv2.threshold(frame, thresh_val,255,0)
+	return thresh
+
 
 def detect_blobs(frame, thresh, meas_last, meas_now, p2a_thresh):
-    img, contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+	img, contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+	img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
-    final = frame.copy()
+	ars = []
+	for i, contour in enumerate(contours):
+		if ((cv2.contourArea(contour) / (img.shape[0]**2)) < 0.25) and ((cv2.contourArea(contour) / (img.shape[0]**2)) > 0.0):
+			ars.append(cv2.contourArea(contour) / (img.shape[0]**2))
+	med = np.mean(ars)
+	med_low = med - 2*med
+	med_high = med*100
+	area_ratios = [med_low, med_high]
 
-    i = 0
-    meas_last = meas_now.copy()
 
-    del meas_now[:]
+	meas_last = meas_now.copy()
 
-    valid_contours = []
-    print('-')
-    while i < len(contours):
-        area = cv2.contourArea(contours[i])
-        
-        print((area/(frame.shape[0]*frame.shape[0])))
+	del meas_now[:]
 
-        if area==0:
-            area=0.001
-        p2a = float((cv2.arcLength(contours[i],True))/(area))
+	valid_contours = []
+	
+	i=0
+	while i < len(contours):
+		area = cv2.contourArea(contours[i])
+		
+		
 
-        if (p2a > p2a_thresh):
-            del contours[i]
+		if area==0:
+			area=0.001
+		p2a = float((cv2.arcLength(contours[i],True))/(area))
 
-        elif ((area/(frame.shape[0]*frame.shape[0])) > 0.0035) or ((area/(frame.shape[0]*frame.shape[0])) < 0.001):
-            del contours[i]
+		if (p2a > p2a_thresh):
+			del contours[i]
 
-        else:
-            M = cv2.moments(contours[i])
-            valid_contours.append(contours[i])
-            if M['m00'] != 0:
-                cx = M['m10']/M['m00']
-                cy = M['m01']/M['m00']
+		elif ((area/(frame.shape[0]*frame.shape[0])) > med_high):
+			del contours[i]
 
-                vx,vy, _, _ = cv2.fitLine(contours[i], cv2.DIST_L2,0,0.01,0.01)
+		else:
+			M = cv2.moments(contours[i])
+			valid_contours.append(contours[i])
+			if M['m00'] != 0:
+				cx = M['m10']/M['m00']
+				cy = M['m01']/M['m00']
 
-            	
-            else:
-                cx = 0
-                cy = 0
+				vx,vy, _, _ = cv2.fitLine(contours[i], cv2.DIST_L2,0,0.01,0.01)
 
-                vx,vy,_,_ = 0,0,0,0
-            
+				
+			else:
+				cx = 0
+				cy = 0
 
-            try:
-                meas_now.append([cx, cy, vx[0], vy[0]])
-            except TypeError:
-                meas_now.append([cx, cy, vx, vy])
+				vx,vy,_,_ = 0,0,0,0
+			
 
-            i += 1
+			try:
+				meas_now.append([cx, cy, vx[0], vy[0]])
+			except TypeError:
+				meas_now.append([cx, cy, vx, vy])
 
-    return final, contours, meas_last, meas_now, len(valid_contours)
+			i += 1
+
+
+	return contours, meas_last, meas_now, len(valid_contours)
+
+
+
 
 
 def run(cd, crop, r, mask):
 
 
 	input_vidpath = str(cd['path'])
-	recording = 	bool(cd['record'])
-	logging = 		bool(cd['log'])
+	recording =     bool(cd['record'])
+	logging =       bool(cd['log'])
 
-	arduino = 		bool(cd['arduino'])
-	comm = 			str(cd['comm'])
-	baud = 			int(cd['baud'])
-	ifd_min = 		float(cd['IFD_thresh'])
-	pulse_len = 	float(cd['pulse_len'])
+	arduino =       bool(cd['arduino'])
+	comm =          str(cd['comm'])
+	baud =          int(cd['baud'])
+	ifd_min =       float(cd['IFD_thresh'])
+	pulse_len =     float(cd['pulse_len'])
 	pulse_lockout = float(cd['pulse_lockout'])
 	ifd_time_thresh = float(cd['IFD_time_thresh'])
 
 
-	n_inds = 		int(cd['n_inds'])
-	heading = 		bool(cd['heading'])
-	wings = 		bool(cd['wings'])
-	ifd_on = 		bool(cd['IFD'])
-	scaling = 		cd['scaling']
-	FLIR = 			bool(cd['FLIR'])
-
-	arena_mms = 	float(cd['arena_mms'])
-	thresh_val = 	cd['thresh_val']
-	mask_on = 		bool(cd['mask_on'])
+	n_inds =        int(cd['n_inds'])
+	heading =       bool(cd['heading'])
+	wings =         bool(cd['wings'])
+	ifd_on =        bool(cd['IFD'])
+	scaling =       cd['scaling']
+	FLIR =          bool(cd['FLIR'])
+	arena_mms =     float(cd['arena_mms'])
+	thresh_val =    cd['thresh_val']
+	mask_on =       bool(cd['mask_on'])
 
 	stop_bit = False
 	mot=True
@@ -132,12 +144,12 @@ def run(cd, crop, r, mask):
 
 	# Determine final output frame size
 	if crop.shape[0]>max_pixel:
-	    info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
-	    padding=False
+		info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
+		padding=False
 	else:
-	    info = np.zeros((max_pixel, 220, 3), np.uint8)
-	    pad = np.zeros((max_pixel - crop.shape[0], (crop.shape[0]), 3), np.uint8)
-	    padding=True
+		info = np.zeros((max_pixel, 220, 3), np.uint8)
+		pad = np.zeros((max_pixel - crop.shape[0], (crop.shape[0]), 3), np.uint8)
+		padding=True
 
 	if padding==True:
 		h1, w1 = crop.shape[:2]
@@ -236,15 +248,17 @@ def run(cd, crop, r, mask):
 		this=1
 
 	while(True):
-	    # Capture frame-by-frame
+		# Capture frame-by-frame
 		
+		n_inds = int(cd['n_inds'])
+
 		if FLIR==True:
 			ret = True
 			ret, frame = capIm()
 			frame = np.expand_dims(frame, 2)
 			frame = cv2.cvtColor(frame,cv2.COLOR_GRAY2BGR)
 			this+=1
-		else:	
+		else:   
 			ret, frame = cap.read()
 			this = cap.get(1)
 			
@@ -267,7 +281,8 @@ def run(cd, crop, r, mask):
 			thresh = color_to_thresh(bw_frame, thresh_val)
 
 			# Contour detection
-			final, contours, meas_last, meas_now, num_valid_contours = detect_blobs(cl_frame, thresh, meas_last, meas_now, p2a)
+			contours, meas_last, meas_now, num_valid_contours = detect_blobs(cl_frame, thresh, meas_last, meas_now, p2a)
+
 
 			if num_valid_contours==n_inds:
 				if frame_count==0:
@@ -277,14 +292,13 @@ def run(cd, crop, r, mask):
 					all_present=True
 
 			else:
-				if frame_count < 3000:
+				if frame_count < 300:
 					roll_call = 0
 
 
-			
+
 			if all_present==True:
 
-				# Operations to preserve identity and extract centroid coords
 				pixel_meas = [[int(meas[0]), int(meas[1])] for meas in meas_now]
 				
 				if frame_count==0:
@@ -294,6 +308,7 @@ def run(cd, crop, r, mask):
 						history = dl.manage_history(history, pixel_meas, 200, init=False)
 					except UnboundLocalError:
 						history = dl.manage_history(None, pixel_meas, 200, init=True)
+
 
 				new_frame = draw_global_results(cl_frame, meas_now, colors, history, n_inds, DL=False, traces=True, heading=False)
 				
@@ -328,6 +343,7 @@ def run(cd, crop, r, mask):
 			if recording==True:
 				out.write(vis)
 
+			print('-')
 
 			# FPS Calcs
 			fps = True

@@ -3,27 +3,6 @@ import cv2
 
 
 def draw_global_results(img, meas_now, colours, history, n_inds, DL = False, wings=False, traces=True, heading=True):
-    if DL==True:
-        for idx, idv in enumerate(global_results):
-            head = (idv[0][0], idv[0][1])
-            tail = (idv[3][0], idv[3][1])
-
-            if wings==True:
-                for i in range(3):
-                    new_frame = cv2.line(img, head, tail, colours[i], thickness=2)
-            else:
-                new_frame = cv2.line(img, head, tail, colours[idx], thickness=2)
-
-            new_frame = cv2.putText(img, str(idx), (head[0] + 5, head[1] + 5), cv2.FONT_HERSHEY_DUPLEX , 0.8, colours[idx], 1, cv2.LINE_AA)
-            
-            if traces==True:
-                for centroid in history:
-                    if len(centroid)==len(global_results):
-                        new_frame = cv2.circle(img, (centroid[idx][0], centroid[idx][1]), 1, colours[idx], -1, cv2.LINE_AA)
-                    else:
-                        pass
-        return new_frame
-        
     
     for i in range(n_inds):
         
@@ -31,11 +10,11 @@ def draw_global_results(img, meas_now, colours, history, n_inds, DL = False, win
             try:
                 new_frame = cv2.putText(img, str(i+1), (history[-1][i][0] + 5, history[-1][i][1] + 5), cv2.FONT_HERSHEY_DUPLEX , 0.8, colours[i], 1, cv2.LINE_AA)
             except IndexError:
-                new_frame = img
+                pass 
 
         if traces==True:
             for centroid in history:
-                if len(centroid)==2:
+                if len(centroid)==n_inds:
                     new_frame = cv2.circle(img, (centroid[i][0], centroid[i][1]), 1, colours[i], -1, cv2.LINE_AA)
                 else:
                     pass

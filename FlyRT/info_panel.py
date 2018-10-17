@@ -22,7 +22,7 @@ def generate_info_panel(frame, data_dict, vis_shape):
 
 		log_string = "  Logging: " + str(data_dict['logging'])
 
-		ifd_string = "Inter-Fly Distance: " +  "{:.2f}".format(data_dict['ifd']) + "pp"
+		ifd_string = "Inter-Fly Distance: " +  "{:.2f}".format(data_dict['ifd']) + "mm"
 
 		rec_string = "  Recording: " + str(data_dict['recording'])
 
