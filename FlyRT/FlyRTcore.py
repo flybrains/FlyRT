@@ -37,9 +37,12 @@ def detect_blobs(frame, thresh, meas_last, meas_now, p2a_thresh):
 
     del meas_now[:]
 
-
+    valid_contours = []
+    print('-')
     while i < len(contours):
         area = cv2.contourArea(contours[i])
+        
+        print((area/(frame.shape[0]*frame.shape[0])))
 
         if area==0:
             area=0.001
@@ -48,22 +51,25 @@ def detect_blobs(frame, thresh, meas_last, meas_now, p2a_thresh):
         if (p2a > p2a_thresh):
             del contours[i]
 
-        elif (area > 1000):
+        elif ((area/(frame.shape[0]*frame.shape[0])) > 0.0035) or ((area/(frame.shape[0]*frame.shape[0])) < 0.001):
             del contours[i]
 
         else:
             M = cv2.moments(contours[i])
+            valid_contours.append(contours[i])
             if M['m00'] != 0:
                 cx = M['m10']/M['m00']
                 cy = M['m01']/M['m00']
 
                 vx,vy, _, _ = cv2.fitLine(contours[i], cv2.DIST_L2,0,0.01,0.01)
 
+            	
             else:
                 cx = 0
                 cy = 0
 
                 vx,vy,_,_ = 0,0,0,0
+            
 
             try:
                 meas_now.append([cx, cy, vx[0], vy[0]])
@@ -72,55 +78,7 @@ def detect_blobs(frame, thresh, meas_last, meas_now, p2a_thresh):
 
             i += 1
 
-    return final, contours, meas_last, meas_now
-
-
-def hungarian_algorithm(meas_last, meas_now, old_meas, old_ind):
-
-    meas_last = np.array(meas_last)
-    meas_now = np.array(meas_now)
-
-    if meas_now.shape != meas_last.shape:
-        if meas_now.shape[0] < meas_last.shape[0]:
-            while meas_now.shape[0] != meas_last.shape[0]:
-                meas_last = np.delete(meas_last, meas_last.shape[0]-1, 0)
-        else:
-            try:
-                result = np.zeros(meas_now.shape)
-                result[:meas_last.shape[0],:meas_last.shape[1]] = meas_last
-                meas_last = result
-            except IndexError:
-                print("Handle: IndexError")
-                meas_last = old_meas[-1][0]
-
-    meas_last = list(meas_last)
-    meas_now = list(meas_now)
-
-    # Hacky way to keep shape errors from occurring by using last valid entry
-    old_meas.append([meas_last, meas_now])
-
-    if len(old_meas)>2:
-        old_meas.pop(0)
-
-    if (len(meas_last) == 0):
-        meas_last = old_meas[-1][0]
-
-    if len(meas_now)==0:
-        meas_now = old_meas[-1][1]
-
-    try:
-        cost = cdist(meas_last, meas_now)
-        row_ind, col_ind = linear_sum_assignment(cost)
-
-        old_ind.append([row_ind, col_ind])
-        if len(old_ind)>3:
-            old_ind.pop(0)
-
-    except ValueError:
-        print("Handle: ValueError")
-        row_ind, col_ind = old_ind[-1][0], old_ind[-1][1]
-
-    return row_ind, col_ind, old_meas, old_ind
+    return final, contours, meas_last, meas_now, len(valid_contours)
 
 
 def run(cd, crop, r, mask):
@@ -153,6 +111,8 @@ def run(cd, crop, r, mask):
 	stop_bit = False
 	mot=True
 	p2a = 0.5
+	roll_call = 0
+	all_present = False
 
 	if arena_mms is not None:
 		mm2pixel = float(arena_mms/crop.shape[0])
@@ -291,6 +251,7 @@ def run(cd, crop, r, mask):
 
 		if ret == True:
 
+
 			#ROI Selection
 			frame = mask_frame(frame, mask, r, mask_on, crop_on=True)
 
@@ -306,45 +267,59 @@ def run(cd, crop, r, mask):
 			thresh = color_to_thresh(bw_frame, thresh_val)
 
 			# Contour detection
-			final, contours, meas_last, meas_now = detect_blobs(cl_frame, thresh, meas_last, meas_now, p2a)
+			final, contours, meas_last, meas_now, num_valid_contours = detect_blobs(cl_frame, thresh, meas_last, meas_now, p2a)
 
-			# Operations to preserve identity and extract centroid coords
-			row_ind, col_ind, old_meas, old_ind = hungarian_algorithm(meas_last, meas_now, old_meas, old_ind)
-			pixel_meas = [[int(meas[0]), int(meas[1])] for meas in meas_now]
+			if num_valid_contours==n_inds:
+				if frame_count==0:
+					all_present=True
+				roll_call += 1
+				if roll_call > 150:
+					all_present=True
 
-
-			# Manage centroid tracking history 
-			if frame_count==0:
-				history = dl.manage_history(None, pixel_meas, 200, init=True)
 			else:
-				history = dl.manage_history(history, pixel_meas, 200, init=False)
+				if frame_count < 3000:
+					roll_call = 0
+
 
 			
-			global_results = None
-			new_frame = draw_global_results(cl_frame, meas_now, colors, history, DL=False, traces=True, heading=False)
+			if all_present==True:
 
-			#new_frame = add_thumbnails(cl_frame, patches, results, colors)
-
-			ifd, old_ifd = metrics.ifd(pixel_meas, old_ifd, 0.5)
-
-			ifd_mm = ifd*(mm2pixel)
-
-			angles, old_angles = metrics.relative_angle(meas_now, old_angles)
-
-			info_dict ={"frame_count": frame_count,
-						"fps_calc": fps_calc,
-						"logging":logging,
-						"ifd": ifd_mm,
-						"recording": recording,
-						"heading": angles}
-
-			vis = generate_info_panel(new_frame, info_dict, vis_shape)
-
-			if arduino==True:
-				if ((time.time() - last_pulse_time) > pulse_lockout):
-					last_pulse_time, accum = ard.lights(ser, ifd_mm, ifd_min, pulse_len, accum, IFD_time_thresh)
-
+				# Operations to preserve identity and extract centroid coords
+				pixel_meas = [[int(meas[0]), int(meas[1])] for meas in meas_now]
 				
+				if frame_count==0:
+					history = dl.manage_history(None, pixel_meas, 200, init=True)
+				else:
+					try:
+						history = dl.manage_history(history, pixel_meas, 200, init=False)
+					except UnboundLocalError:
+						history = dl.manage_history(None, pixel_meas, 200, init=True)
+
+				new_frame = draw_global_results(cl_frame, meas_now, colors, history, n_inds, DL=False, traces=True, heading=False)
+				
+				ifd, old_ifd = metrics.ifd(pixel_meas, old_ifd, 0.5)
+
+				ifd_mm = ifd*(mm2pixel)
+
+				angles, old_angles = metrics.relative_angle(meas_now, old_angles)
+
+				info_dict ={"frame_count": frame_count,
+							"fps_calc": fps_calc,
+							"logging":logging,
+							"ifd": ifd_mm,
+							"recording": recording,
+							"heading": angles}
+
+				vis = generate_info_panel(new_frame, info_dict, vis_shape)
+
+				if arduino==True:
+					if ((time.time() - last_pulse_time) > pulse_lockout):
+						last_pulse_time, accum = ard.lights(ser, ifd_mm, ifd_min, pulse_len, accum, IFD_time_thresh)
+
+			else:
+				new_frame = cl_frame
+				info_dict = None
+				vis =  generate_info_panel(new_frame, info_dict, vis_shape)
 
 			# Show present frame. Suppress to improve realtime speed
 			cv2.imshow("FlyRT", vis)
@@ -361,7 +336,7 @@ def run(cd, crop, r, mask):
 			fps_calc = float(frame_count/time1)
 
 			# Write current measurment and calcs to CSV
-			if logging == True:
+			if (logging == True) and (all_present==True):
 				logger.write_meas(frame_count, float(frame_count/30), pixel_meas[0:n_inds], ifd_mm, angles)
 
 
@@ -369,7 +344,7 @@ def run(cd, crop, r, mask):
 
 			stop_bit = config.stop_bit
 			if cv2.waitKey(1) & (stop_bit==True):
-
+				break
 		else:
 			break
 

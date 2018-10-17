@@ -190,13 +190,15 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
 
         config.stop_bit = False
         self.update_param_dict()
-        try:
-            FlyRTcore.run(self.FlyRT_params, self.crop, self.r, self.mask)
-        except TypeError:
-            msg = 'Unable to track animals. Try: \n - Adjust threshold \n - Ensure the number of animals present matches the defined value  '
-            self.error = ErrorMsg(msg)
-            self.error.show()
-            return None
+ 
+        FlyRTcore.run(self.FlyRT_params, self.crop, self.r, self.mask)
+        # try:
+        #     FlyRTcore.run(self.FlyRT_params, self.crop, self.r, self.mask)
+        # except (UnboundLocalError, TypeError):
+        #     msg = 'Unable to track animals. Try: \n - Adjust threshold \n - Ensure the number of animals present matches the defined value  '
+        #     self.error = ErrorMsg(msg)
+        #     self.error.show()
+        #     return None
 
 
     def stop_tracking(self):

@@ -9,7 +9,7 @@ def ifd(new_meas, old_ifd, scale_factor):
 		ifd = np.linalg.norm(pos_b - pos_a)
 
 	except IndexError:
-		print("Handle: IndexError")
+		print("Handle: IFD IndexError")
 		ifd = old_ifd
 
 	return [ifd, ifd]

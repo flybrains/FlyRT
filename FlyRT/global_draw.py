@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 
-def draw_global_results(img, meas_now, colours, history, DL = False, wings=False, traces=True, heading=True):
+def draw_global_results(img, meas_now, colours, history, n_inds, DL = False, wings=False, traces=True, heading=True):
     if DL==True:
         for idx, idv in enumerate(global_results):
             head = (idv[0][0], idv[0][1])
@@ -25,13 +25,13 @@ def draw_global_results(img, meas_now, colours, history, DL = False, wings=False
         return new_frame
         
     
-    for i in range(2):
+    for i in range(n_inds):
         
-        if len(history)>1:
+        if len(history)>0:
             try:
                 new_frame = cv2.putText(img, str(i+1), (history[-1][i][0] + 5, history[-1][i][1] + 5), cv2.FONT_HERSHEY_DUPLEX , 0.8, colours[i], 1, cv2.LINE_AA)
             except IndexError:
-                pass
+                new_frame = img
 
         if traces==True:
             for centroid in history:
@@ -63,11 +63,6 @@ def draw_global_results(img, meas_now, colours, history, DL = False, wings=False
             except IndexError:
                     pass
 
-        
-    # try:
-    #     new_frame
-    # except NameError:
-    #     new_frame = np.zeros(img.shape, np.uint8)
 
     return new_frame
 
