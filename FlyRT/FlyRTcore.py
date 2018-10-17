@@ -136,7 +136,7 @@ def run(cd, crop, r, mask):
 	ifd_min = 		float(cd['IFD_thresh'])
 	pulse_len = 	float(cd['pulse_len'])
 	pulse_lockout = float(cd['pulse_lockout'])
-	ifd_time_thresh = float(['IFD_time_thresh'])
+	ifd_time_thresh = float(cd['IFD_time_thresh'])
 
 
 	n_inds = 		int(cd['n_inds'])
@@ -347,7 +347,7 @@ def run(cd, crop, r, mask):
 				
 
 			# Show present frame. Suppress to improve realtime speed
-			cv2.imshow("FlySORT", vis)
+			cv2.imshow("FlyRT", vis)
 			
 			# Write to .avi
 			if recording==True:
@@ -369,7 +369,6 @@ def run(cd, crop, r, mask):
 
 			stop_bit = config.stop_bit
 			if cv2.waitKey(1) & (stop_bit==True):
-				break
 
 		else:
 			break
