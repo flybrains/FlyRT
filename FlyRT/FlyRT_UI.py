@@ -170,7 +170,7 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
             self.mask, self.r, self.crop = saROI.launch_GUI(self.inpath)
         else:
             self.mask, self.r, self.crop = saROI.launch_FLIR_GUI(self.idx)
-        
+
 
     def get_param_dict(self):
         return self.FlyRT_params
@@ -178,6 +178,16 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
     def start_tracking(self):
         config.stop_bit = False
         self.update_param_dict()
+
+        try:
+            self.r
+        except AttributeError:
+            msg = 'Please define ROI to begin tracking.'
+            self.error = ErrorMsg(msg)
+            self.error.show()
+            return None
+
+        self.subtractor = FlyRTcore.subtractor(self.crop, self.FlyRT_params['thresh_val'])
 
         try:
             if self.warning:
@@ -192,7 +202,7 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
                 pass
 
  
-        FlyRTcore.run(self.FlyRT_params, self.crop, self.r, self.mask)
+        FlyRTcore.run(self.FlyRT_params, self.crop, self.r, self.mask, self.subtractor)
         # try:
         #     FlyRTcore.run(self.FlyRT_params, self.crop, self.r, self.mask)
         # except (UnboundLocalError, TypeError):

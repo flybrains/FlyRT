@@ -50,8 +50,6 @@ def detect_blobs(frame, thresh, meas_last, meas_now, p2a_thresh):
 	i=0
 	while i < len(contours):
 		area = cv2.contourArea(contours[i])
-		
-		
 
 		if area==0:
 			area=0.001
@@ -91,10 +89,57 @@ def detect_blobs(frame, thresh, meas_last, meas_now, p2a_thresh):
 	return contours, meas_last, meas_now, len(valid_contours)
 
 
+def subtractor(crop, thresh_val):
+
+
+	subtract = crop.copy()
+	img = cv2.cvtColor(subtract, cv2.COLOR_BGR2GRAY)
+	thresh_img = color_to_thresh(img, thresh_val)
+
+	thresh_img_og = thresh_img.copy()
+	_, contours, _ = cv2.findContours(thresh_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+	fly_patches = []
+	good_contours = []
+
+	for i, contour in enumerate(contours):
+		if ((cv2.contourArea(contour) / (crop.shape[0]**2)) < 0.01) and ((cv2.contourArea(contour) / (crop.shape[0]**2)) > 0.0001):
+			good_contours.append(contour)
+
+
+	better_contours = []
+	subtractor = thresh_img.copy()
+	for i, contour in enumerate(good_contours):
+
+		M = cv2.moments(contour)
+		if M['m00'] != 0:
+			cx = int(M['m10']/M['m00'])
+			cy = int(M['m01']/M['m00'])
+
+		area = cv2.contourArea(contour)
+		edge = int(np.sqrt(area))
+		h = int(edge/2)
+		window = thresh_img[(cy - h):(cy + h), (cx - h):(cx + h)]
+
+		if np.mean(window) != np.nan:
+			if (np.mean(window) > 60) and (np.mean(window) < 160):
+				better_contours.append(contour)
+
+		
+		subtractor[(cy - edge):(cy + edge), (cx - edge):(cx + edge)] = 255
+
+
+	thresh_img = cv2.cvtColor(thresh_img, cv2.COLOR_GRAY2BGR)
+	thresh_img = cv2.drawContours(thresh_img, better_contours, -1, (0,0,255), 1)
+	
+	cv2.imwrite('subtractor.jpg', subtractor)
+	cv2.imwrite('thresh_img.jpg', thresh_img_og)
+
+	return subtractor
 
 
 
-def run(cd, crop, r, mask):
+def run(cd, crop, r, mask, subtractor):
 
 
 	input_vidpath = str(cd['path'])
@@ -279,6 +324,8 @@ def run(cd, crop, r, mask):
 
 
 			thresh = color_to_thresh(bw_frame, thresh_val)
+			thresh = 255 - (subtractor - thresh)
+
 
 			# Contour detection
 			contours, meas_last, meas_now, num_valid_contours = detect_blobs(cl_frame, thresh, meas_last, meas_now, p2a)
@@ -343,7 +390,6 @@ def run(cd, crop, r, mask):
 			if recording==True:
 				out.write(vis)
 
-			print('-')
 
 			# FPS Calcs
 			fps = True
