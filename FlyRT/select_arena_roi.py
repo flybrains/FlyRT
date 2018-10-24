@@ -28,8 +28,6 @@ def launch_GUI(input_vidpath):
 	mask = cv2.circle(mask, (cx,cy), int(r[3]/2), (255,255,255), -1)
 	mask = (mask/255).astype(int).astype(bool)
 
-	masked = im*mask[:,:,None]
-
 	cv2.destroyAllWindows()
 
 	cy = r[1] + int(r[3]/2)
@@ -68,7 +66,7 @@ def launch_FLIR_GUI(idx):
 
 	cam.startCapture()
 
-	ret, im = capIm()	
+	ret, im = capIm()
 	im = im.copy()
 	im = np.expand_dims(im, 2)
 
@@ -79,9 +77,9 @@ def launch_FLIR_GUI(idx):
 
 	mask = np.ones((im.shape[0], im.shape[1]), np.uint8)
 	mask = cv2.circle(mask, (cx,cy), int(r[3]/2), (255,255,255), -1)
-	mask = (mask/255).astype(int).astype(bool)
+	mask = np.where(mask==0).astype(bool)
 
-	masked = im*mask[:,:,None]
+	# masked = im*mask[:,:,None]
 
 	cy = r[1] + int(r[3]/2)
 	cx = r[0] + int(r[2]/2)
@@ -128,5 +126,3 @@ def mask_frame(frame, mask, r, mask_on=True, crop_on=True):
 
 
 	return new_frame
-
-

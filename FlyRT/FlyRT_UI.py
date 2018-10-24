@@ -10,11 +10,11 @@ import config
 import numpy as np
 
 import select_arena_roi as saROI
-import FlyRTcore
+import FlyRTcore, FlyRTmulti
 
 cwd = os.getcwd()
 qtCreatorFile = cwd+r"\FlyRT.ui"
- 
+
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
 
 class ErrorMsg(QtWidgets.QMessageBox):
@@ -27,10 +27,9 @@ class ErrorMsg(QtWidgets.QMessageBox):
 class WarningMsg(QtWidgets.QMessageBox):
     def __init__(self, msg, parent=None):
         super(WarningMsg, self).__init__(parent)
-        self.setIcon(QtWidgets.QMessageBox.Warning)
         self.setText(msg)
         self.setWindowTitle('Warning')
-        
+
 
 class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -49,13 +48,17 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         self.crop = None
         self.inpath = None
 
+        self.param_update_count = 0
+
 
     def analysis_radio_button_clicked(self):
         print(self.PostHocRadioButton.checkedId())
         print(self.RTRadioButton.checkedId())
-    
+
     def update_param_dict(self):
-        self.FlyRT_params = {}
+        if self.param_update_count==0:
+            self.FlyRT_params = {}
+            self.param_update_count=1
 
         self.FlyRT_params['record'] = self.RecordCheck.isChecked()
         self.FlyRT_params['log'] = self.LogCheck.isChecked()
@@ -79,6 +82,8 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.FlyRT_params['drop_frames'] = self.DiscardFramesCheck.isChecked()
 
+        self.FlyRT_params['multi'] = bool(self.multiCheck.isChecked())
+
         self.FlyRT_params['thresh_val'] = self.ThreshValueSpin.value()
 
         if self.PostHocRadioButton.isChecked():
@@ -97,6 +102,19 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         self.FlyRT_params['IFD_thresh'] = self.IFDThreshSpin.value()
         self.FlyRT_params['IFD_time_thresh'] = self.TimeBelowIFDThreshSpin.value()
 
+        self.FlyRT_params['RT_IFD'] = self.IFDExperimentRadioButton.isChecked()
+        self.FlyRT_params['RT_PP'] = self.PeriodicPulseRTERadioButton.isChecked()
+        self.FlyRT_params['RT_PP_Delay'] = self.RTPeriodicDelaySpin.value()
+        self.FlyRT_params['RT_PP_Period'] = self.RTPeriodicDelaySpin.value()
+
+        self.FlyRT_params['LED_color_Red'] = self.RTERedRadioButton.isChecked()
+        self.FlyRT_params['LED_color_Green'] = self.RTEGreenRadioButton.isChecked()
+        self.FlyRT_params['LED_intensity'] = int(self.intensitySlider.value()/10)
+        print(self.FlyRT_params['LED_intensity'])
+
+
+
+
         if self.PostHocRadioButton.isChecked():
             self.FLIR = False
         if self.RTFLIRRadioButton.isChecked():
@@ -106,6 +124,13 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.FlyRT_params['FLIR'] = self.FLIR
         self.FlyRT_params['path'] = self.inpath
+
+        try:
+            self.FlyRT_params['subtractor'] = FlyRTcore.subtractor(self.crop, self.FlyRT_params['thresh_val'])
+        except (NameError, AttributeError):
+            pass
+
+
 
 
 
@@ -140,14 +165,14 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
         cv2.imshow("Threshold Value: {}".format(thresh_val), thresh_img)
-        
+
         cv2.waitKey(0)
 
     def selectInputFile(self):
         fname = QFileDialog.getOpenFileName(self, 'Select Input Video', '/home')
 
         self.inpath = str(fname[0])
-        self.InputVidPathLabel.setText(self.inpath)   
+        self.InputVidPathLabel.setText(self.inpath)
 
 
     def select_arena_roi(self):
@@ -171,13 +196,23 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             self.mask, self.r, self.crop = saROI.launch_FLIR_GUI(self.idx)
 
+        self.FlyRT_params['crop'] = self.crop
+        self.FlyRT_params['r'] = self.r
+        self.FlyRT_params['mask'] = self.mask
+
 
     def get_param_dict(self):
         return self.FlyRT_params
 
     def start_tracking(self):
+
         config.stop_bit = False
         self.update_param_dict()
+
+        if self.FlyRT_params['multi']==True:
+
+            self.start_multi()
+            return None
 
         try:
             self.r
@@ -186,8 +221,6 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
             self.error = ErrorMsg(msg)
             self.error.show()
             return None
-
-        self.subtractor = FlyRTcore.subtractor(self.crop, self.FlyRT_params['thresh_val'])
 
         try:
             if self.warning:
@@ -201,15 +234,20 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 pass
 
- 
-        FlyRTcore.run(self.FlyRT_params, self.crop, self.r, self.mask, self.subtractor)
+
+        FlyRTcore.run(self.FlyRT_params)
+
         # try:
-        #     FlyRTcore.run(self.FlyRT_params, self.crop, self.r, self.mask)
+        #     FlyRTcore.run(self.FlyRT_params)
         # except (UnboundLocalError, TypeError):
         #     msg = 'Unable to track animals. Try: \n - Adjust threshold \n - Ensure the number of animals present matches the defined value  '
         #     self.error = ErrorMsg(msg)
         #     self.error.show()
         #     return None
+
+    def start_multi(self):
+        FlyRTmulti.run(self.FlyRT_params)
+
 
 
     def stop_tracking(self):

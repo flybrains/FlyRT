@@ -1,15 +1,16 @@
 
 import  numpy as np
 import  pandas  as  pd
-import scipy.signal
-from scipy.optimize import linear_sum_assignment
-from scipy.spatial.distance import cdist
+import time
 import cv2
 import sys
-import time
 from os import system
-import config
+import os
+from datetime import datetime
+import serial
+import PyCapture2
 
+import config
 import metrics
 from global_draw import draw_global_results, add_thumbnails
 import data_logger as dl
@@ -18,133 +19,129 @@ from select_arena_roi import launch_GUI, mask_frame
 from info_panel import generate_info_panel
 import arduino_interface as ard
 import utils
-from datetime import datetime
-import serial
-import PyCapture2
-
-def color_to_thresh(frame, thresh_val):
-	ret, thresh = cv2.threshold(frame, thresh_val,255,0)
-	return thresh
+import image_patch as ip
 
 
-def detect_blobs(frame, thresh, meas_last, meas_now, p2a_thresh):
-	img, contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-	img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+def get_frame_max(img, multi_max, start_frame, n_processes):
 
-	ars = []
-	for i, contour in enumerate(contours):
-		if ((cv2.contourArea(contour) / (img.shape[0]**2)) < 0.25) and ((cv2.contourArea(contour) / (img.shape[0]**2)) > 0.0):
-			ars.append(cv2.contourArea(contour) / (img.shape[0]**2))
-	med = np.mean(ars)
-	med_low = med - 2*med
-	med_high = med*100
-	area_ratios = [med_low, med_high]
+	# Function to determine how many frames to keep per package given:
+	# - Max frame for the current thread
+	# - Start frame for current thread
+	# - How many similar processes are running concurrently
+	# Returns maximum number of frames before initiating new package
 
+	# Frame range for entire thread
+	expected_load = multi_max - start_frame
 
-	meas_last = meas_now.copy()
+	# Amount of RAM to allocate to storing images in memory
+	n_gb = 6
+	n_bytes = img.nbytes
+	frames_per_pack = ((1.0e9*n_gb)/n_processes)/n_bytes
 
-	del meas_now[:]
+	if frames_per_pack > expected_load:
 
-	valid_contours = []
-	
-	i=0
-	while i < len(contours):
-		area = cv2.contourArea(contours[i])
+		frames_per_pack = expected_load
 
-		if area==0:
-			area=0.001
-		p2a = float((cv2.arcLength(contours[i],True))/(area))
-
-		if (p2a > p2a_thresh):
-			del contours[i]
-
-		elif ((area/(frame.shape[0]*frame.shape[0])) > med_high):
-			del contours[i]
-
-		else:
-			M = cv2.moments(contours[i])
-			valid_contours.append(contours[i])
-			if M['m00'] != 0:
-				cx = M['m10']/M['m00']
-				cy = M['m01']/M['m00']
-
-				vx,vy, _, _ = cv2.fitLine(contours[i], cv2.DIST_L2,0,0.01,0.01)
-
-				
-			else:
-				cx = 0
-				cy = 0
-
-				vx,vy,_,_ = 0,0,0,0
-			
-
-			try:
-				meas_now.append([cx, cy, vx[0], vy[0]])
-			except TypeError:
-				meas_now.append([cx, cy, vx, vy])
-
-			i += 1
+	return int(frames_per_pack)
 
 
-	return contours, meas_last, meas_now, len(valid_contours)
+def detect_blobs(frame, thresh, meas_last, meas_now):
 
+	# Function to find valid fly contours and return centroid coordinates
+	# Returns new meas_now tuple with error handling to return last valid one if
+	# 	no good measurements found
 
-def subtractor(crop, thresh_val):
+	# Generate contours with no discrimination
+	_, contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-
-	subtract = crop.copy()
-	img = cv2.cvtColor(subtract, cv2.COLOR_BGR2GRAY)
-	thresh_img = color_to_thresh(img, thresh_val)
-
-	thresh_img_og = thresh_img.copy()
-	_, contours, _ = cv2.findContours(thresh_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-	fly_patches = []
+	# Discriminate contours based on area percentage of total frame. Flies are generally between 0.001 and 0.01
 	good_contours = []
 
 	for i, contour in enumerate(contours):
-		if ((cv2.contourArea(contour) / (crop.shape[0]**2)) < 0.01) and ((cv2.contourArea(contour) / (crop.shape[0]**2)) > 0.0001):
-			good_contours.append(contour)
+
+			if ((cv2.contourArea(contour) / (thresh.shape[0]**2)) < 0.01) and ((cv2.contourArea(contour) / (thresh.shape[0]**2)) > 0.0001):
+
+				good_contours.append(contour)
+
+	meas_last = meas_now.copy()
+	del meas_now[:]
 
 
+	# Second round of discrimination based on whether or not centroid is filled and if it is in masked "non-arena" area
 	better_contours = []
-	subtractor = thresh_img.copy()
+
 	for i, contour in enumerate(good_contours):
 
 		M = cv2.moments(contour)
+
 		if M['m00'] != 0:
+
 			cx = int(M['m10']/M['m00'])
 			cy = int(M['m01']/M['m00'])
+			vx,vy, _, _ = cv2.fitLine(contours[i], cv2.DIST_L2,0,0.01,0.01)
 
-		area = cv2.contourArea(contour)
-		edge = int(np.sqrt(area))
-		h = int(edge/2)
-		window = thresh_img[(cy - h):(cy + h), (cx - h):(cx + h)]
+			center_coords = np.asarray([int(frame.shape[0]/2), int(frame.shape[1]/2)])
+			dist_to_center = np.linalg.norm(center_coords - np.asarray([cx,cy]))
 
-		if np.mean(window) != np.nan:
-			if (np.mean(window) > 60) and (np.mean(window) < 160):
-				better_contours.append(contour)
+			if (dist_to_center > (frame.shape[0]/2)):
 
-		
-		subtractor[(cy - edge):(cy + edge), (cx - edge):(cx + edge)] = 255
+				pass
+
+			elif [int(cx), int(cy)] in [[0,0], [0, frame.shape[0]], [frame.shape[0],0], []]:
+
+				pass
+
+			else:
+
+				# Check whether contour is mostly filled or not
+				area = cv2.contourArea(contour)
+				edge = int(np.sqrt(area))
+				h = int(edge/2)
+				window = thresh[(cy - h):(cy + h), (cx - h):(cx + h)]
+
+				if np.mean(window) != np.nan:
+
+					if (np.mean(window) > 60) and (np.mean(window) < 160):
+
+						better_contours.append(contour)
+
+					try:
+
+						meas_now.append([cx, cy, vx[0], vy[0]])
+
+					except TypeError:
+
+						meas_now.append([cx, cy, vx, vy])
+
+					else:
+
+						cx = 0
+						cy = 0
+						vx,vy,_,_ = 0,0,0,0
+
+	return contours, meas_last, meas_now, len(better_contours)
 
 
-	thresh_img = cv2.cvtColor(thresh_img, cv2.COLOR_GRAY2BGR)
-	thresh_img = cv2.drawContours(thresh_img, better_contours, -1, (0,0,255), 1)
-	
-	cv2.imwrite('subtractor.jpg', subtractor)
-	cv2.imwrite('thresh_img.jpg', thresh_img_og)
-
-	return subtractor
-
-
-
-def run(cd, crop, r, mask, subtractor):
-
+def run(cd, start_frame=None, multi_max=None, n_processes=None):
 
 	input_vidpath = str(cd['path'])
 	recording =     bool(cd['record'])
 	logging =       bool(cd['log'])
+	scaling =       cd['scaling']
+
+	multi = 		cd['multi']
+
+	n_inds =        int(cd['n_inds'])
+	heading =       bool(cd['heading'])
+	wings =         bool(cd['wings'])
+	ifd_on =        bool(cd['IFD'])
+	arena_mms =     float(cd['arena_mms'])
+	thresh_val =    cd['thresh_val']
+	mask_on =       bool(cd['mask_on'])
+
+	crop = 			cd['crop']
+	r = 			cd['r']
+	mask = 			cd['mask']
 
 	arduino =       bool(cd['arduino'])
 	comm =          str(cd['comm'])
@@ -154,22 +151,43 @@ def run(cd, crop, r, mask, subtractor):
 	pulse_lockout = float(cd['pulse_lockout'])
 	ifd_time_thresh = float(cd['IFD_time_thresh'])
 
+	rt_ifd = bool(cd['RT_IFD'])
+	rt_pp = bool(cd['RT_PP'])
+	rt_pp_delay = int(cd['RT_PP_Delay'])
+	rt_pp_period = int(cd['RT_PP_Period'])
 
-	n_inds =        int(cd['n_inds'])
-	heading =       bool(cd['heading'])
-	wings =         bool(cd['wings'])
-	ifd_on =        bool(cd['IFD'])
-	scaling =       cd['scaling']
+	rt_LED_red = bool(cd['LED_color_Red'])
+	rt_LED_green = bool(cd['LED_color_Green'])
+	rt_LED_intensity = int(cd['LED_intensity'])
+
 	FLIR =          bool(cd['FLIR'])
-	arena_mms =     float(cd['arena_mms'])
-	thresh_val =    cd['thresh_val']
-	mask_on =       bool(cd['mask_on'])
+
+
+	if rt_LED_red==True:
+		rt_LED_color='red'
+	elif rt_LED_green==True:
+		rt_LED_color='green'
 
 	stop_bit = False
 	mot=True
 	p2a = 0.5
 	roll_call = 0
 	all_present = False
+
+	if multi==True:
+
+		frames=[]
+
+		cwd = os.getcwd()
+
+		frames_save_dir = cwd+'/frame_pkgs'
+		multi_frame_count = 0
+
+		arduino, FLIR = False, False
+
+		cap = cv2.VideoCapture(input_vidpath)
+		cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+
 
 	if arena_mms is not None:
 		mm2pixel = float(arena_mms/crop.shape[0])
@@ -225,6 +243,9 @@ def run(cd, crop, r, mask, subtractor):
 	frame_count = 0
 	fps_calc = 0
 
+	if multi==True:
+		frame_count=start_frame
+
 	# Start csv logger
 	if logging==True:
 		logger = dl.Logger()
@@ -256,10 +277,13 @@ def run(cd, crop, r, mask, subtractor):
 	old_ifd = 0
 	old_angles = [0,0]
 	last_pulse_time = 0
-	accum = 0
+	accum = [time.time(), None]
 
 
+
+	# FLIR Camera Zone
 	def capIm():
+		# Function retreives buffer from FLIR camera in place of cv2 capture
 		try:
 			img = cam.retrieveBuffer()
 		except PyCapture2.Fc2error as fc2Err:
@@ -271,19 +295,20 @@ def run(cd, crop, r, mask, subtractor):
 
 		return True, data
 
-
-	## Open video
+	# Check if Real Time experiment being done with FLIR camera, init connection if so
 	if FLIR==True:
 		bus = PyCapture2.BusManager()
 		cam = PyCapture2.Camera()
 		uid = bus.getCameraFromIndex(0)
 		cam.connect(uid)
-
 		cam.startCapture()
+
+	# If not a Real Time experiment using FLIR or a post hoc experiment, init
 	else:
-		cap = cv2.VideoCapture(input_vidpath)
-		if cap.isOpened() == False:
-			sys.exit('Video file cannot be read! Please check input_vidpath to ensure it is correctly pointing to the video file')
+		if multi==False:
+			cap = cv2.VideoCapture(input_vidpath)
+			if cap.isOpened() == False:
+				sys.exit('Video file cannot be read! Please check input_vidpath to ensure it is correctly pointing to the video file')
 
 
 	# Initialize time
@@ -294,7 +319,8 @@ def run(cd, crop, r, mask, subtractor):
 
 	while(True):
 		# Capture frame-by-frame
-		
+
+
 		n_inds = int(cd['n_inds'])
 
 		if FLIR==True:
@@ -303,13 +329,12 @@ def run(cd, crop, r, mask, subtractor):
 			frame = np.expand_dims(frame, 2)
 			frame = cv2.cvtColor(frame,cv2.COLOR_GRAY2BGR)
 			this+=1
-		else:   
+		else:
 			ret, frame = cap.read()
 			this = cap.get(1)
-			
+
 
 		if ret == True:
-
 
 			#ROI Selection
 			frame = mask_frame(frame, mask, r, mask_on, crop_on=True)
@@ -322,13 +347,11 @@ def run(cd, crop, r, mask, subtractor):
 			cl_frame = cv2.resize(frame, None, fx = scaling, fy = scaling, interpolation = cv2.INTER_LINEAR)
 			bw_frame = cv2.cvtColor(cl_frame, cv2.COLOR_BGR2GRAY)
 
-
-			thresh = color_to_thresh(bw_frame, thresh_val)
-			thresh = 255 - (subtractor - thresh)
+			_, thresh = cv2.threshold(bw_frame, thresh_val,255,0)
 
 
 			# Contour detection
-			contours, meas_last, meas_now, num_valid_contours = detect_blobs(cl_frame, thresh, meas_last, meas_now, p2a)
+			contours, meas_last, meas_now, num_valid_contours = detect_blobs(cl_frame, thresh, meas_last, meas_now)
 
 
 			if num_valid_contours==n_inds:
@@ -344,10 +367,11 @@ def run(cd, crop, r, mask, subtractor):
 
 
 
+
 			if all_present==True:
 
 				pixel_meas = [[int(meas[0]), int(meas[1])] for meas in meas_now]
-				
+
 				if frame_count==0:
 					history = dl.manage_history(None, pixel_meas, 200, init=True)
 				else:
@@ -357,8 +381,12 @@ def run(cd, crop, r, mask, subtractor):
 						history = dl.manage_history(None, pixel_meas, 200, init=True)
 
 
+				patches, _ = ip.extract_image_patches(cl_frame, pixel_meas, (40,40))
+
+				#cv2.imshow('patch',patches[0])
+
 				new_frame = draw_global_results(cl_frame, meas_now, colors, history, n_inds, DL=False, traces=True, heading=False)
-				
+
 				ifd, old_ifd = metrics.ifd(pixel_meas, old_ifd, 0.5)
 
 				ifd_mm = ifd*(mm2pixel)
@@ -374,27 +402,62 @@ def run(cd, crop, r, mask, subtractor):
 
 				vis = generate_info_panel(new_frame, info_dict, vis_shape)
 
-				if arduino==True:
-					if ((time.time() - last_pulse_time) > pulse_lockout):
-						last_pulse_time, accum = ard.lights(ser, ifd_mm, ifd_min, pulse_len, accum, IFD_time_thresh)
+
+				if rt_ifd==True:
+					last_pulse_time, accum = ard.lights_IFD(ser, last_pulse_time, accum, ifd_mm, ifd_min, pulse_len, ifd_time_thresh, rt_LED_color, rt_LED_intensity)
+
+				if (rt_pp==True) and ((time.time() - time0) >= rt_pp_delay):
+					last_pulse_time = ard.lights_PP(ser, last_pulse_time, pulse_len, rt_pp_delay, rt_pp_period, rt_LED_color, rt_LED_intensity)
+
+
+
+
 
 			else:
 				new_frame = cl_frame
 				info_dict = None
 				vis =  generate_info_panel(new_frame, info_dict, vis_shape)
 
+
+			if (multi==True):
+
+				if (multi_frame_count==0):
+					max_frame = get_frame_max(vis, multi_max, start_frame, n_processes)
+					print('Got Max Frame: ', max_frame)
+					bottom = frame_count
+
+
+				if (multi_frame_count <= max_frame):
+
+					try:
+						frames.append(vis)
+					except (AttributeError, NameError):
+						frames=vis
+
+					if multi_frame_count==max_frame:
+
+						frames = np.asarray(frames)
+						np.save(frames_save_dir+'/frame_pkg_{}_{}.npy'.format(bottom, (frame_count)), frames)
+
+						multi_frame_count=0
+						bottom = frame_count + start_frame
+						frames = []
+
+
+
+
 			# Show present frame. Suppress to improve realtime speed
-			cv2.imshow("FlyRT", vis)
-			
+			if multi==False:
+				cv2.imshow("FlyRT", vis)
+
 			# Write to .avi
 			if recording==True:
 				out.write(vis)
 
-
 			# FPS Calcs
 			fps = True
 			time1 = time.time() - time0
-			
+
 			fps_calc = float(frame_count/time1)
 
 			# Write current measurment and calcs to CSV
@@ -403,12 +466,20 @@ def run(cd, crop, r, mask, subtractor):
 
 
 			frame_count+=1
+			if multi==True:
+				multi_frame_count +=1
 
 			stop_bit = config.stop_bit
 			if cv2.waitKey(1) & (stop_bit==True):
 				break
+
+			if multi_max is not None and (frame_count >= multi_max):
+				break
+
 		else:
 			break
+
+
 
 
 	if FLIR==True:
@@ -417,9 +488,10 @@ def run(cd, crop, r, mask, subtractor):
 	else:
 		cap.release()
 
+
 	if logging==True:
 		logger.close_writer()
-	
+
 	if recording==True:
 		out.release()
 
@@ -428,5 +500,32 @@ def run(cd, crop, r, mask, subtractor):
 
 	return None
 
+if __name__=='__main__':
 
+	mask, r, crop = launch_GUI('C:/Users/Patrick/Desktop/Video3.mp4')
 
+	cd = {'path': 'C:/Users/Patrick/Desktop/Video3.mp4',
+		  'record':False,
+		  'log':False,
+		  'scaling':0.8,
+		  'multi':False,
+		  'n_inds':2,
+		  'heading':False,
+		  'wings':False,
+		  'IFD':True,
+		  'arena_mms':40,
+		  'thresh_val':80,
+		  'mask_on':True,
+		  'crop':crop,
+		  'r':r,
+		  'mask':mask,
+		  'arduino':False,
+		  'comm':None,
+		  'baud':0,
+		  'IFD_thresh':0,
+		  'pulse_len':0,
+		  'pulse_lockout':0,
+		  'IFD_time_thresh':0,
+		  'FLIR':False
+		  }
+	run(cd)

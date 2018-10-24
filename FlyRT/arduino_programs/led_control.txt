@@ -1,0 +1,109 @@
+int val=0;
+//int redPin = 9;
+//int greenPin = 10;
+
+int greenPin=13;
+int redPin=13;
+
+void setup() {
+  pinMode(redPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+
+  while(Serial.available()==0)
+  {
+    analogWrite(redPin, 0);
+    analogWrite(greenPin, 0);
+  }
+
+  
+
+  if (Serial.available() > 0)
+  {
+    val = Serial.read();
+
+    if (val == '1')
+    {
+       analogWrite(redPin, 28);
+    }
+    if (val == '2')
+    {
+       analogWrite(redPin, 56);
+    }
+    if (val == '3')
+    {
+       analogWrite(redPin, 84);
+    }
+    if (val == '4')
+    {
+       analogWrite(redPin, 112);
+    }
+    if (val == '5')
+    {
+       analogWrite(redPin, 140);
+    }
+    if (val == '6')
+    {
+       analogWrite(redPin, 168);
+    }
+    if (val == '7')
+    {
+       analogWrite(redPin, 196);
+    }
+    if (val == '8')
+    {
+       analogWrite(redPin, 224);
+    }
+    if (val == '9')
+    {
+       analogWrite(redPin, 255);
+    }
+    if (val == '11')
+    {
+       analogWrite(greenPin, 28);
+    }
+    if (val == '12')
+    {
+       analogWrite(greenPin, 56);
+    }
+    if (val == '13')
+    {
+       analogWrite(greenPin, 84);
+    }
+    if (val == '14')
+    {
+       analogWrite(greenPin, 112);
+    }
+    if (val == '15')
+    {
+       analogWrite(greenPin, 140);
+    }
+    if (val == '16')
+    {
+       analogWrite(greenPin, 168);
+    }
+    if (val == '17')
+    {
+       analogWrite(greenPin, 196);
+    }
+    if (val == '18')
+    {
+       analogWrite(greenPin, 224);
+    }
+    if (val == '19')
+    {
+       analogWrite(greenPin, 255);
+    }
+    
+    if (val=='0' || val=='10')
+    {
+        analogWrite(redPin, 0);
+        analogWrite(greenPin, 0);
+    }
+    
+  }
+  
+}
