@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>726</width>
-    <height>602</height>
+    <width>765</width>
+    <height>615</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -35,7 +35,7 @@
    <widget class="QSpinBox" name="ThreshValueSpin">
     <property name="geometry">
      <rect>
-      <x>191</x>
+      <x>231</x>
       <y>170</y>
       <width>41</width>
       <height>22</height>
@@ -69,7 +69,7 @@
    <widget class="QPushButton" name="StartTrackingPB">
     <property name="geometry">
      <rect>
-      <x>460</x>
+      <x>520</x>
       <y>520</y>
       <width>91</width>
       <height>23</height>
@@ -106,7 +106,7 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>70</y>
       <width>131</width>
       <height>16</height>
@@ -128,7 +128,7 @@
      <rect>
       <x>10</x>
       <y>50</y>
-      <width>611</width>
+      <width>721</width>
       <height>16</height>
      </rect>
     </property>
@@ -139,7 +139,7 @@
    <widget class="Line" name="line_2">
     <property name="geometry">
      <rect>
-      <x>170</x>
+      <x>190</x>
       <y>70</y>
       <width>20</width>
       <height>461</height>
@@ -152,7 +152,7 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>240</x>
+      <x>280</x>
       <y>170</y>
       <width>131</width>
       <height>21</height>
@@ -171,7 +171,7 @@
    <widget class="QPushButton" name="SetArenaROIPB">
     <property name="geometry">
      <rect>
-      <x>190</x>
+      <x>230</x>
       <y>100</y>
       <width>101</width>
       <height>23</height>
@@ -190,7 +190,7 @@
    <widget class="QPushButton" name="ViewThresholdPB">
     <property name="geometry">
      <rect>
-      <x>190</x>
+      <x>230</x>
       <y>200</y>
       <width>131</width>
       <height>23</height>
@@ -209,7 +209,7 @@
    <widget class="QPushButton" name="InputVidPB">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>220</y>
       <width>151</width>
       <height>23</height>
@@ -228,7 +228,7 @@
    <widget class="QPushButton" name="StopTrackingPB">
     <property name="geometry">
      <rect>
-      <x>560</x>
+      <x>620</x>
       <y>520</y>
       <width>91</width>
       <height>23</height>
@@ -247,7 +247,7 @@
    <widget class="QCheckBox" name="RecordCheck">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>100</y>
       <width>101</width>
       <height>17</height>
@@ -266,7 +266,7 @@
    <widget class="QCheckBox" name="LogCheck">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>120</y>
       <width>101</width>
       <height>17</height>
@@ -285,7 +285,7 @@
    <widget class="QCheckBox" name="HeadingCheck">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>40</x>
       <y>160</y>
       <width>101</width>
       <height>17</height>
@@ -304,7 +304,7 @@
    <widget class="QCheckBox" name="IFDCheck">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>40</x>
       <y>140</y>
       <width>161</width>
       <height>17</height>
@@ -323,7 +323,7 @@
    <widget class="QCheckBox" name="WingsCheck">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>40</x>
       <y>180</y>
       <width>101</width>
       <height>17</height>
@@ -342,7 +342,7 @@
    <widget class="QLabel" name="label_6">
     <property name="geometry">
      <rect>
-      <x>400</x>
+      <x>460</x>
       <y>70</y>
       <width>191</width>
       <height>16</height>
@@ -362,7 +362,7 @@
    <widget class="QLabel" name="label_7">
     <property name="geometry">
      <rect>
-      <x>420</x>
+      <x>480</x>
       <y>110</y>
       <width>191</width>
       <height>16</height>
@@ -382,7 +382,7 @@
    <widget class="QRadioButton" name="IFDExperimentRadioButton">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>470</x>
       <y>290</y>
       <width>211</width>
       <height>31</height>
@@ -404,7 +404,7 @@
    <widget class="QTextEdit" name="ArduinoCommText">
     <property name="geometry">
      <rect>
-      <x>570</x>
+      <x>630</x>
       <y>100</y>
       <width>71</width>
       <height>24</height>
@@ -423,7 +423,7 @@
    <widget class="QSpinBox" name="baudRateSpin">
     <property name="geometry">
      <rect>
-      <x>570</x>
+      <x>630</x>
       <y>130</y>
       <width>71</width>
       <height>21</height>
@@ -436,7 +436,7 @@
    <widget class="QLabel" name="ArduinoCommTextLabel">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>470</x>
       <y>100</y>
       <width>151</width>
       <height>31</height>
@@ -449,7 +449,7 @@
    <widget class="QLabel" name="ArduinoBaudSpin">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>470</x>
       <y>130</y>
       <width>101</width>
       <height>21</height>
@@ -462,7 +462,7 @@
    <widget class="QLabel" name="label_11">
     <property name="geometry">
      <rect>
-      <x>190</x>
+      <x>230</x>
       <y>130</y>
       <width>101</width>
       <height>21</height>
@@ -475,7 +475,7 @@
    <widget class="QSpinBox" name="ArenaDiameterSpin">
     <property name="geometry">
      <rect>
-      <x>290</x>
+      <x>330</x>
       <y>130</y>
       <width>42</width>
       <height>21</height>
@@ -535,7 +535,7 @@
    <widget class="QSpinBox" name="pulseLenSpin">
     <property name="geometry">
      <rect>
-      <x>570</x>
+      <x>630</x>
       <y>160</y>
       <width>42</width>
       <height>21</height>
@@ -548,7 +548,7 @@
    <widget class="QLabel" name="ArduinoPulseSpin">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>470</x>
       <y>160</y>
       <width>101</width>
       <height>21</height>
@@ -561,7 +561,7 @@
    <widget class="QLabel" name="label_13">
     <property name="geometry">
      <rect>
-      <x>620</x>
+      <x>680</x>
       <y>160</y>
       <width>31</width>
       <height>21</height>
@@ -574,7 +574,7 @@
    <widget class="QLabel" name="label_14">
     <property name="geometry">
      <rect>
-      <x>340</x>
+      <x>380</x>
       <y>130</y>
       <width>31</width>
       <height>21</height>
@@ -587,7 +587,7 @@
    <widget class="QLabel" name="label_15">
     <property name="geometry">
      <rect>
-      <x>620</x>
+      <x>680</x>
       <y>190</y>
       <width>31</width>
       <height>21</height>
@@ -600,7 +600,7 @@
    <widget class="QLabel" name="ArduinoPulseLockoutSpin">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>470</x>
       <y>190</y>
       <width>161</width>
       <height>21</height>
@@ -613,7 +613,7 @@
    <widget class="QSpinBox" name="arduinoLockoutTimeSpin">
     <property name="geometry">
      <rect>
-      <x>570</x>
+      <x>630</x>
       <y>190</y>
       <width>42</width>
       <height>21</height>
@@ -626,7 +626,7 @@
    <widget class="QLabel" name="label_5">
     <property name="geometry">
      <rect>
-      <x>190</x>
+      <x>230</x>
       <y>70</y>
       <width>191</width>
       <height>16</height>
@@ -646,8 +646,8 @@
    <widget class="QCheckBox" name="DiscardFramesCheck">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>371</y>
+      <x>20</x>
+      <y>370</y>
       <width>181</width>
       <height>17</height>
      </rect>
@@ -665,7 +665,7 @@
    <widget class="QCheckBox" name="VidScaleCheck">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>311</y>
       <width>171</width>
       <height>17</height>
@@ -684,8 +684,8 @@
    <widget class="QTextEdit" name="VidScaleTextEdit">
     <property name="geometry">
      <rect>
-      <x>70</x>
-      <y>333</y>
+      <x>90</x>
+      <y>340</y>
       <width>41</width>
       <height>24</height>
      </rect>
@@ -705,10 +705,10 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>40</x>
-      <y>330</y>
+      <x>50</x>
+      <y>340</y>
       <width>31</width>
-      <height>31</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -718,7 +718,7 @@
    <widget class="Line" name="line_3">
     <property name="geometry">
      <rect>
-      <x>380</x>
+      <x>410</x>
       <y>70</y>
       <width>20</width>
       <height>461</height>
@@ -731,7 +731,7 @@
    <widget class="QRadioButton" name="NoRTERadioButton">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>470</x>
       <y>460</y>
       <width>82</width>
       <height>17</height>
@@ -747,7 +747,7 @@
    <widget class="QLabel" name="InputVidPathLabel">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>250</y>
       <width>151</width>
       <height>16</height>
@@ -760,7 +760,7 @@
    <widget class="QSpinBox" name="NIndsSpin">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>340</x>
       <y>270</y>
       <width>42</width>
       <height>22</height>
@@ -770,7 +770,7 @@
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>180</x>
+      <x>230</x>
       <y>270</y>
       <width>121</width>
       <height>21</height>
@@ -783,7 +783,7 @@
    <widget class="QCheckBox" name="MaskOnCheck">
     <property name="geometry">
      <rect>
-      <x>190</x>
+      <x>230</x>
       <y>240</y>
       <width>101</width>
       <height>17</height>
@@ -802,7 +802,7 @@
    <widget class="QLabel" name="ArduinoPulseSpin_2">
     <property name="geometry">
      <rect>
-      <x>450</x>
+      <x>510</x>
       <y>320</y>
       <width>101</width>
       <height>21</height>
@@ -815,7 +815,7 @@
    <widget class="QLabel" name="label_16">
     <property name="geometry">
      <rect>
-      <x>660</x>
+      <x>720</x>
       <y>320</y>
       <width>31</width>
       <height>21</height>
@@ -828,7 +828,7 @@
    <widget class="QSpinBox" name="IFDThreshSpin">
     <property name="geometry">
      <rect>
-      <x>610</x>
+      <x>670</x>
       <y>320</y>
       <width>42</width>
       <height>21</height>
@@ -862,7 +862,7 @@
    <widget class="QLabel" name="ArduinoPulseSpin_3">
     <property name="geometry">
      <rect>
-      <x>450</x>
+      <x>510</x>
       <y>350</y>
       <width>121</width>
       <height>21</height>
@@ -875,7 +875,7 @@
    <widget class="QSpinBox" name="TimeBelowIFDThreshSpin">
     <property name="geometry">
      <rect>
-      <x>610</x>
+      <x>670</x>
       <y>350</y>
       <width>42</width>
       <height>21</height>
@@ -888,7 +888,7 @@
    <widget class="QLabel" name="label_17">
     <property name="geometry">
      <rect>
-      <x>660</x>
+      <x>720</x>
       <y>350</y>
       <width>31</width>
       <height>21</height>
@@ -901,7 +901,7 @@
    <widget class="QCheckBox" name="multiCheck">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>280</y>
       <width>201</width>
       <height>17</height>
@@ -914,13 +914,13 @@
      </font>
     </property>
     <property name="text">
-     <string>High Speed  (Post Hoc Only)</string>
+     <string>Fast  Post Hoc Processing</string>
     </property>
    </widget>
    <widget class="QRadioButton" name="PeriodicPulseRTERadioButton">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>470</x>
       <y>380</y>
       <width>111</width>
       <height>17</height>
@@ -936,9 +936,9 @@
    <widget class="QRadioButton" name="RTERedRadioButton">
     <property name="geometry">
      <rect>
-      <x>450</x>
+      <x>510</x>
       <y>230</y>
-      <width>51</width>
+      <width>71</width>
       <height>21</height>
      </rect>
     </property>
@@ -954,9 +954,9 @@
    <widget class="QRadioButton" name="RTEGreenRadioButton">
     <property name="geometry">
      <rect>
-      <x>450</x>
+      <x>510</x>
       <y>250</y>
-      <width>51</width>
+      <width>71</width>
       <height>21</height>
      </rect>
     </property>
@@ -972,7 +972,7 @@
    <widget class="QLabel" name="label_8">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>470</x>
       <y>230</y>
       <width>47</width>
       <height>41</height>
@@ -985,7 +985,7 @@
    <widget class="QLabel" name="label_9">
     <property name="geometry">
      <rect>
-      <x>530</x>
+      <x>590</x>
       <y>230</y>
       <width>51</width>
       <height>41</height>
@@ -998,7 +998,7 @@
    <widget class="QSlider" name="intensitySlider">
     <property name="geometry">
      <rect>
-      <x>590</x>
+      <x>650</x>
       <y>240</y>
       <width>81</width>
       <height>22</height>
@@ -1011,7 +1011,7 @@
    <widget class="Line" name="line_4">
     <property name="geometry">
      <rect>
-      <x>420</x>
+      <x>480</x>
       <y>270</y>
       <width>251</width>
       <height>16</height>
@@ -1024,7 +1024,7 @@
    <widget class="QLabel" name="ArduinoPulseSpin_4">
     <property name="geometry">
      <rect>
-      <x>450</x>
+      <x>510</x>
       <y>400</y>
       <width>101</width>
       <height>21</height>
@@ -1037,7 +1037,7 @@
    <widget class="QSpinBox" name="RTPeriodicPulseSpin">
     <property name="geometry">
      <rect>
-      <x>610</x>
+      <x>670</x>
       <y>430</y>
       <width>42</width>
       <height>21</height>
@@ -1050,7 +1050,7 @@
    <widget class="QLabel" name="label_18">
     <property name="geometry">
      <rect>
-      <x>660</x>
+      <x>720</x>
       <y>430</y>
       <width>31</width>
       <height>21</height>
@@ -1063,7 +1063,7 @@
    <widget class="QSpinBox" name="RTPeriodicDelaySpin">
     <property name="geometry">
      <rect>
-      <x>610</x>
+      <x>670</x>
       <y>400</y>
       <width>42</width>
       <height>21</height>
@@ -1076,7 +1076,7 @@
    <widget class="QLabel" name="RTPeriodicPeriodSpin">
     <property name="geometry">
      <rect>
-      <x>450</x>
+      <x>510</x>
       <y>430</y>
       <width>121</width>
       <height>21</height>
@@ -1089,7 +1089,7 @@
    <widget class="QLabel" name="label_19">
     <property name="geometry">
      <rect>
-      <x>660</x>
+      <x>720</x>
       <y>400</y>
       <width>31</width>
       <height>21</height>
@@ -1105,7 +1105,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>726</width>
+     <width>765</width>
      <height>21</height>
     </rect>
    </property>
