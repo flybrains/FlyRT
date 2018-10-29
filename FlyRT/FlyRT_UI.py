@@ -8,6 +8,7 @@ from os import system
 import os
 import config
 import numpy as np
+import pickle
 
 import select_arena_roi as saROI
 import FlyRTcore, FlyRTmulti
@@ -45,10 +46,13 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         self.SetArenaROIPB.clicked.connect(self.select_arena_roi)
         self.InputVidPB.clicked.connect(self.selectInputFile)
 
+        self.LoadConfigButton.clicked.connect(self.loadConfig)
+
         self.crop = None
         self.inpath = None
 
         self.param_update_count = 0
+        self.arena_set = False
 
 
     def analysis_radio_button_clicked(self):
@@ -78,6 +82,8 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             self.FlyRT_params['scaling'] = None
 
+        self.FlyRT_params['vid_scale_check'] = self.VidScaleCheck.isChecked()
+
         self.FlyRT_params['arena_mms'] = self.ArenaDiameterSpin.value()
 
         self.FlyRT_params['drop_frames'] = self.DiscardFramesCheck.isChecked()
@@ -90,6 +96,11 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
             self.FlyRT_params['analysis_type'] = "posthoc"
         else:
             self.FlyRT_params['analysis_type'] = "realtime"
+
+        self.FlyRT_params['PH'] = self.PostHocRadioButton.isChecked()
+        self.FlyRT_params['RTF'] = self.RTFLIRRadioButton.isChecked()
+        self.FlyRT_params['RTU'] = self.RTUSBRadioButton.isChecked()
+
 
         self.FlyRT_params['n_inds'] = self.NIndsSpin.value()
         self.FlyRT_params['mask_on'] = self.MaskOnCheck.isChecked()
@@ -113,6 +124,7 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 
+
         if self.PostHocRadioButton.isChecked():
             self.FLIR = False
         if self.RTFLIRRadioButton.isChecked():
@@ -129,8 +141,64 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
             pass
 
 
+    def loadConfig(self):
+        open_dir = os.getcwd() + "/program_data"
+
+        list_of_folders = os.listdir(os.getcwd())
+
+        if 'program_data' in list_of_folders:
+
+            list_of_files = os.listdir(open_dir)
+            if 'data_dictionary.pkl' in list_of_files:
+
+                with open(open_dir + '/data_dictionary.pkl', 'rb') as f:
+            	       cd = pickle.load(f)
 
 
+                self.RecordCheck.setChecked(cd['record'])
+                self.LogCheck.setChecked(cd['log'])
+                self.IFDCheck.setChecked(cd['IFD'])
+                self.HeadingCheck.setChecked(cd['heading'])
+                self.WingsCheck.setChecked(cd['wings'])
+                self.VidScaleTextEdit.setText(cd['scaling'])
+                self.ArenaDiameterSpin.setValue(cd['arena_mms'])
+                self.DiscardFramesCheck.setChecked(cd['drop_frames'])
+                self.multiCheck.setChecked(cd['multi'])
+                self.ThreshValueSpin.setValue(cd['thresh_val'])
+                self.NIndsSpin.setValue(cd['n_inds'])
+                self.MaskOnCheck.setChecked(cd['mask_on'])
+                self.ArduinoCommText.setText(cd['comm'])
+
+                self.baudRateSpin.setValue(cd['baud'])
+                self.pulseLenSpin.setValue(cd['pulse_len'])
+                self.arduinoLockoutTimeSpin.setValue(cd['pulse_lockout'])
+                self.IFDThreshSpin.setValue(cd['IFD_thresh'])
+                self.TimeBelowIFDThreshSpin.setValue(cd['IFD_time_thresh'])
+                self.IFDExperimentRadioButton.setChecked(cd['RT_IFD'])
+                self.PeriodicPulseRTERadioButton.setChecked(cd['RT_PP'])
+                self.RTPeriodicDelaySpin.setValue(cd['RT_PP_Delay'])
+                self.RTPeriodicDelaySpin.setValue(cd['RT_PP_Period'])
+                self.RTERedRadioButton.setChecked(cd['LED_color_Red'])
+                self.RTEGreenRadioButton.setChecked(cd['LED_color_Green'])
+                self.intensitySlider.setValue(int(cd['LED_intensity']*10))
+                self.VidScaleCheck.setChecked(cd['vid_scale_check'])
+
+                self.PostHocRadioButton.setChecked(cd['PH'])
+                self.RTFLIRRadioButton.setChecked(cd['RTF'])
+                self.RTUSBRadioButton.setChecked(cd['RTU'])
+
+
+                self.crop = cd['crop']
+                self.r = cd['r']
+                self.mask = cd['mask']
+
+                self.inpath = cd['path']
+                self.InputVidPathLabel.setText(self.inpath)
+
+            else:
+                pass
+        else:
+            pass
 
     def view_threshold(self):
         self.update_param_dict()
@@ -174,6 +242,8 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def select_arena_roi(self):
+
+        self.arena_set = True
         self.update_param_dict()
 
         if (self.PostHocRadioButton.isChecked()) and (self.inpath is None):
@@ -206,6 +276,17 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
 
         config.stop_bit = False
         self.update_param_dict()
+
+        if self.arena_set==False:
+            self.FlyRT_params['crop'] = self.crop
+            self.FlyRT_params['r'] = self.r
+            self.FlyRT_params['mask'] = self.mask
+
+
+        save_dir = os.getcwd()+'/program_data'
+
+        with open(save_dir+'/data_dictionary.pkl', 'wb') as f:
+            pickle.dump(self.FlyRT_params, f)
 
         if self.FlyRT_params['multi']==True:
 
