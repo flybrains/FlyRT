@@ -1,3 +1,4 @@
+
 import  numpy as np
 import  pandas  as  pd
 import time
@@ -401,11 +402,28 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 				vis = generate_info_panel(new_frame, info_dict, vis_shape)
 
 
-				if rt_ifd==True:
-					last_pulse_time, accum = ard.lights_IFD(ser, last_pulse_time, accum, ifd_mm, ifd_min, pulse_len, ifd_time_thresh, rt_LED_color, rt_LED_intensity)
+				if (rt_ifd==True):
+					last_pulse_time, accum = ard.lights_IFD(ser, 
+															last_pulse_time, 
+															accum, 
+															ifd_mm, 
+															ifd_min, 
+															pulse_len, 
+															pulse_lockout, 
+															ifd_time_thresh, 
+															rt_LED_color, 
+															rt_LED_intensity)
+					
 
 				if (rt_pp==True) and ((time.time() - time0) >= rt_pp_delay):
-					last_pulse_time = ard.lights_PP(ser, last_pulse_time, pulse_len, rt_pp_delay, rt_pp_period, rt_LED_color, rt_LED_intensity)
+					
+					last_pulse_time = ard.lights_PP(ser, 
+													last_pulse_time, 
+													pulse_len, 
+													rt_pp_delay, 
+													rt_pp_period, 
+													rt_LED_color, 
+													rt_LED_intensity)
 
 
 
@@ -469,6 +487,7 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 
 			stop_bit = config.stop_bit
 			if cv2.waitKey(1) & (stop_bit==True):
+				ard.close_port(ser)
 				break
 
 			if multi_max is not None and (frame_count >= multi_max):
@@ -486,6 +505,8 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 	else:
 		cap.release()
 
+	if (rt_pp==True) or (rt_ifd==True):
+		ard.close_port(ser)
 
 	if logging==True:
 		logger.close_writer()
@@ -495,6 +516,7 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 
 	cv2.destroyAllWindows()
 	cv2.waitKey()
+
 
 	return None
 

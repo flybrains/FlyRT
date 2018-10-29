@@ -116,7 +116,7 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         self.FlyRT_params['RT_IFD'] = self.IFDExperimentRadioButton.isChecked()
         self.FlyRT_params['RT_PP'] = self.PeriodicPulseRTERadioButton.isChecked()
         self.FlyRT_params['RT_PP_Delay'] = self.RTPeriodicDelaySpin.value()
-        self.FlyRT_params['RT_PP_Period'] = self.RTPeriodicDelaySpin.value()
+        self.FlyRT_params['RT_PP_Period'] = self.RTPeriodicPulseSpin.value()
 
         self.FlyRT_params['LED_color_Red'] = self.RTERedRadioButton.isChecked()
         self.FlyRT_params['LED_color_Green'] = self.RTEGreenRadioButton.isChecked()
@@ -152,7 +152,7 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
             if 'data_dictionary.pkl' in list_of_files:
 
                 with open(open_dir + '/data_dictionary.pkl', 'rb') as f:
-            	       cd = pickle.load(f)
+                       cd = pickle.load(f)
 
 
                 self.RecordCheck.setChecked(cd['record'])
@@ -177,7 +177,7 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.IFDExperimentRadioButton.setChecked(cd['RT_IFD'])
                 self.PeriodicPulseRTERadioButton.setChecked(cd['RT_PP'])
                 self.RTPeriodicDelaySpin.setValue(cd['RT_PP_Delay'])
-                self.RTPeriodicDelaySpin.setValue(cd['RT_PP_Period'])
+                self.RTPeriodicPulseSpin.setValue(cd['RT_PP_Period'])
                 self.RTERedRadioButton.setChecked(cd['LED_color_Red'])
                 self.RTEGreenRadioButton.setChecked(cd['LED_color_Green'])
                 self.intensitySlider.setValue(int(cd['LED_intensity']*10))

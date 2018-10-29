@@ -1,13 +1,15 @@
 int val=0;
-//int redPin = 9;
+//int redPin = 3;
 //int greenPin = 10;
 
-int greenPin=13;
-int redPin=13;
+int redPin = 13;
+int greenPin = 13;
 
 void setup() {
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
+  pinMode(13, OUTPUT);
+  digitalWrite(13, LOW);
   Serial.begin(9600);
 }
 
@@ -23,82 +25,103 @@ void loop() {
 
   if (Serial.available() > 0)
   {
+
     val = Serial.read();
 
     if (val == '1')
     {
        analogWrite(redPin, 28);
+       delay(1000);
     }
     if (val == '2')
     {
        analogWrite(redPin, 56);
+        delay(1000);
     }
     if (val == '3')
     {
        analogWrite(redPin, 84);
+       delay(1000);
     }
     if (val == '4')
     {
        analogWrite(redPin, 112);
+       delay(1000);
+
     }
     if (val == '5')
     {
        analogWrite(redPin, 140);
+       delay(1000);
     }
     if (val == '6')
     {
        analogWrite(redPin, 168);
+       delay(1000);
     }
     if (val == '7')
     {
        analogWrite(redPin, 196);
+       delay(1000);
     }
     if (val == '8')
     {
        analogWrite(redPin, 224);
+       delay(1000);
     }
     if (val == '9')
     {
        analogWrite(redPin, 255);
+       delay(1000);
     }
-    if (val == '11')
+    if (val == 'a')
     {
        analogWrite(greenPin, 28);
+       delay(1000);
     }
-    if (val == '12')
+    if (val == 'b')
     {
        analogWrite(greenPin, 56);
+       delay(1000);
     }
-    if (val == '13')
+    if (val == 'c')
     {
        analogWrite(greenPin, 84);
+       delay(1000);
     }
-    if (val == '14')
+    if (val == 'd')
     {
        analogWrite(greenPin, 112);
+       delay(1000);
     }
-    if (val == '15')
+    if (val == 'e')
     {
        analogWrite(greenPin, 140);
+       delay(1000);
     }
-    if (val == '16')
+    if (val == 'f')
     {
        analogWrite(greenPin, 168);
+       delay(1000);
     }
-    if (val == '17')
+    if (val == 'g')
     {
        analogWrite(greenPin, 196);
+       delay(1000);
     }
-    if (val == '18')
+    if (val == 'h')
     {
        analogWrite(greenPin, 224);
+       delay(1000);
     }
-    if (val == '19')
+    if (val == 'i')
     {
        analogWrite(greenPin, 255);
+       delay(1000);
+
     }
     
-    if (val=='0' || val=='10')
+    if (val=='0')
     {
         analogWrite(redPin, 0);
         analogWrite(greenPin, 0);

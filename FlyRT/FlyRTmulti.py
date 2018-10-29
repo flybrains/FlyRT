@@ -1,8 +1,5 @@
 import  numpy as np
 import  pandas  as  pd
-import scipy.signal
-from scipy.optimize import linear_sum_assignment
-from scipy.spatial.distance import cdist
 import cv2
 import sys
 import time
