@@ -110,8 +110,6 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         self.FlyRT_params['LED_color_Red'] = self.RTERedRadioButton.isChecked()
         self.FlyRT_params['LED_color_Green'] = self.RTEGreenRadioButton.isChecked()
         self.FlyRT_params['LED_intensity'] = int(self.intensitySlider.value()/10)
-        print(self.FlyRT_params['LED_intensity'])
-
 
 
 

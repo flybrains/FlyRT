@@ -143,7 +143,6 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 	r = 			cd['r']
 	mask = 			cd['mask']
 
-	arduino =       bool(cd['arduino'])
 	comm =          str(cd['comm'])
 	baud =          int(cd['baud'])
 	ifd_min =       float(cd['IFD_thresh'])
@@ -165,7 +164,7 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 
 	if rt_LED_red==True:
 		rt_LED_color='red'
-	elif rt_LED_green==True:
+	if rt_LED_green==True:
 		rt_LED_color='green'
 
 	stop_bit = False
@@ -183,7 +182,7 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 		frames_save_dir = cwd+'/frame_pkgs'
 		multi_frame_count = 0
 
-		arduino, FLIR = False, False
+		FLIR = False
 
 		cap = cv2.VideoCapture(input_vidpath)
 		cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
@@ -199,7 +198,7 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 	else:
 		scaling = 1.0
 
-	if arduino==True:
+	if (rt_ifd) or (rt_pp==True):
 		ser = ard.init_serial(comm, baud)
 		time.sleep(2)
 
@@ -519,7 +518,6 @@ if __name__=='__main__':
 		  'crop':crop,
 		  'r':r,
 		  'mask':mask,
-		  'arduino':False,
 		  'comm':None,
 		  'baud':0,
 		  'IFD_thresh':0,

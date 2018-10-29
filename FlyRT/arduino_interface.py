@@ -13,14 +13,18 @@ def lights_IFD(ser, last_pulse_time, acum, ifd, ifd_thresh, pulse_len, ifd_time_
 
 	if (LED_color=='red'):
 		send_str = str(LED_intensity)
+
+	for_green = ['0','a', 'b','c','d','e','f','g','h','i']
+
 	if (LED_color=='green'):
-		send_str = str(10+LED_intensity)
+		send_str = str(for_green[LED_intensity])
 
 	def send_command(pulse_len, send_str):
 		t_start = time.time()
 
 		while ((time.time() - t_start) < pulse_len):
 			ser.write(str.encode(send_str))
+			time.sleep(1)
 
 		for i in range(100):
 			ser.write(str.encode('0'))
@@ -34,6 +38,7 @@ def lights_IFD(ser, last_pulse_time, acum, ifd, ifd_thresh, pulse_len, ifd_time_
 			send_thread = threading.Thread(target=send_command, args=(pulse_len, send_str,))
 			send_thread.start()
 
+
 			return time.time(), accum
 
 		else:
@@ -45,27 +50,30 @@ def lights_IFD(ser, last_pulse_time, acum, ifd, ifd_thresh, pulse_len, ifd_time_
 
 		return last_pulse_time, accum
 
-def lights_PP(ser, last_pulse_time, pulse_len, rt_pp_delay, rt_pp_period, rt_LED_color, rt_LED_intensity):
+def lights_PP(ser, last_pulse_time, pulse_len, rt_pp_delay, rt_pp_period, LED_color, LED_intensity):
 
 	if last_pulse_time==0:
 		return time.time()
 
 	if (LED_color=='red'):
 		send_str = str(LED_intensity)
+
+	for_green = ['0','a', 'b','c','d','e','f','g','h','i']
+
 	if (LED_color=='green'):
-		send_str = str(10+LED_intensity)
+		send_str = str(for_green[LED_intensity])
 
 	def send_command(pulse_len, send_str):
 		t_start = time.time()
 
 		while ((time.time() - t_start) < pulse_len):
 			ser.write(str.encode(send_str))
+			time.sleep(0.1)
 
-		for i in range(100):
-			ser.write(str.encode('0'))
+		ser.write(str.encode('0'))
 
 
-	if ((time.time() - last_pulse_time) >= rt_pp_period):
+	if ((time.time() - last_pulse_time) >= 0):
 
 		send_thread = threading.Thread(target=send_command, args=(pulse_len, send_str,))
 		send_thread.start()

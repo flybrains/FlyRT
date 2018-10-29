@@ -26,7 +26,7 @@ def launch_GUI(input_vidpath):
 
 	mask = np.ones((im.shape[0], im.shape[1]), np.uint8)
 	mask = cv2.circle(mask, (cx,cy), int(r[3]/2), (255,255,255), -1)
-	mask = (mask/255).astype(int).astype(bool)
+	mask = (mask/255).astype(int)
 
 	cv2.destroyAllWindows()
 
@@ -77,7 +77,7 @@ def launch_FLIR_GUI(idx):
 
 	mask = np.ones((im.shape[0], im.shape[1]), np.uint8)
 	mask = cv2.circle(mask, (cx,cy), int(r[3]/2), (255,255,255), -1)
-	mask = np.where(mask==0).astype(bool)
+	mask = np.where(mask==0)
 
 	# masked = im*mask[:,:,None]
 
