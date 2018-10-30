@@ -1,4 +1,3 @@
-
 import  numpy as np
 import  pandas  as  pd
 import time
@@ -9,6 +8,7 @@ import os
 from datetime import datetime
 import serial
 import PyCapture2
+import csv
 
 import config
 import metrics
@@ -22,7 +22,7 @@ import utils
 import image_patch as ip
 
 
-def get_frame_max(img, multi_max, start_frame, n_processes):
+def get_frame_max(img, process_max, process_min, n_processes):
 
 	# Function to determine how many frames to keep per package given:
 	# - Max frame for the current thread
@@ -31,18 +31,18 @@ def get_frame_max(img, multi_max, start_frame, n_processes):
 	# Returns maximum number of frames before initiating new package
 
 	# Frame range for entire thread
-	expected_load = multi_max - start_frame
+	expected_load = process_max - process_min
 
 	# Amount of RAM to allocate to storing images in memory
 	n_gb = 6
 	n_bytes = img.nbytes
-	frames_per_pack = ((1.0e9*n_gb)/n_processes)/n_bytes
+	frames_per_batch = ((1.0e9*n_gb)/n_processes)/n_bytes
 
-	if frames_per_pack > expected_load:
+	if frames_per_batch >= expected_load:
 
-		frames_per_pack = expected_load
+		frames_per_batch = expected_load
 
-	return int(frames_per_pack)
+	return int(frames_per_batch)
 
 
 def detect_blobs(frame, thresh, meas_last, meas_now):
@@ -122,7 +122,7 @@ def detect_blobs(frame, thresh, meas_last, meas_now):
 	return contours, meas_last, meas_now, len(better_contours)
 
 
-def run(cd, start_frame=None, multi_max=None, n_processes=None):
+def run(cd, process_min=None, process_max=None, n_processes=None):
 
 	input_vidpath = str(cd['path'])
 	recording =     bool(cd['record'])
@@ -185,7 +185,7 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 		FLIR = False
 
 		cap = cv2.VideoCapture(input_vidpath)
-		cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+		cap.set(cv2.CAP_PROP_POS_FRAMES, process_min)
 
 
 	if arena_mms is not None:
@@ -239,21 +239,22 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 	utils.file_ops()
 
 	# Initialize frame counter
-	frame_count = 0
+	process_frame_count = 0
 	fps_calc = 0
 
 	if multi==True:
-		frame_count=start_frame
+		global_frame_count = process_min
+		batch_frame_count = 0
 
 	# Start csv logger
 	if logging==True:
 		logger = dl.Logger()
 		logger.create_outfile()
-		logger.write_header(frame_count, n_inds, ifd=True, headings = True)
+		logger.write_header(process_frame_count, n_inds, ifd=True, headings = True)
 
 
 	# Use calculated shape to initialize writer
-	if recording==True:
+	if (recording==True) and (multi==False):
 		dt = datetime.now()
 		out = cv2.VideoWriter("generated_data/movies/"+str(dt.month)+"_"+str(dt.day)+"_"+str(dt.year)+"_"+str(dt.hour)+str(dt.minute)+'.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (vis.shape[1], vis.shape[0]), True)
 
@@ -354,14 +355,14 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 
 
 			if num_valid_contours==n_inds:
-				if frame_count==0:
+				if process_frame_count==0:
 					all_present=True
 				roll_call += 1
 				if roll_call > 150:
 					all_present=True
 
 			else:
-				if frame_count < 300:
+				if process_frame_count < 300:
 					roll_call = 0
 
 
@@ -371,7 +372,7 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 
 				pixel_meas = [[int(meas[0]), int(meas[1])] for meas in meas_now]
 
-				if frame_count==0:
+				if process_frame_count==0:
 					history = dl.manage_history(None, pixel_meas, 200, init=True)
 				else:
 					try:
@@ -392,7 +393,7 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 
 				angles, old_angles = metrics.relative_angle(meas_now, old_angles)
 
-				info_dict ={"frame_count": frame_count,
+				info_dict ={"frame_count": process_frame_count,
 							"fps_calc": fps_calc,
 							"logging":logging,
 							"ifd": ifd_mm,
@@ -402,28 +403,11 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 				vis = generate_info_panel(new_frame, info_dict, vis_shape)
 
 
-				if (rt_ifd==True):
-					last_pulse_time, accum = ard.lights_IFD(ser, 
-															last_pulse_time, 
-															accum, 
-															ifd_mm, 
-															ifd_min, 
-															pulse_len, 
-															pulse_lockout, 
-															ifd_time_thresh, 
-															rt_LED_color, 
-															rt_LED_intensity)
-					
+				if rt_ifd==True:
+					last_pulse_time, accum = ard.lights_IFD(ser, last_pulse_time, accum, ifd_mm, ifd_min, pulse_len, ifd_time_thresh, rt_LED_color, rt_LED_intensity)
 
 				if (rt_pp==True) and ((time.time() - time0) >= rt_pp_delay):
-					
-					last_pulse_time = ard.lights_PP(ser, 
-													last_pulse_time, 
-													pulse_len, 
-													rt_pp_delay, 
-													rt_pp_period, 
-													rt_LED_color, 
-													rt_LED_intensity)
+					last_pulse_time = ard.lights_PP(ser, last_pulse_time, pulse_len, rt_pp_delay, rt_pp_period, rt_LED_color, rt_LED_intensity)
 
 
 
@@ -437,27 +421,33 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 
 			if (multi==True):
 
-				if (multi_frame_count==0):
-					max_frame = get_frame_max(vis, multi_max, start_frame, n_processes)
-					print('Got Max Frame: ', max_frame)
-					bottom = frame_count
+				if (process_frame_count==0):
+					frames_per_batch = get_frame_max(vis, process_max, process_min, n_processes)
+					print('Got Max Frame: ', frames_per_batch)
 
 
-				if (multi_frame_count <= max_frame):
+				if (batch_frame_count <= frames_per_batch):
 
 					try:
 						frames.append(vis)
 					except (AttributeError, NameError):
 						frames=vis
 
-					if multi_frame_count==max_frame:
+					if batch_frame_count==frames_per_batch:
 
 						frames = np.asarray(frames)
-						np.save(frames_save_dir+'/frame_pkg_{}_{}.npy'.format(bottom, (frame_count)), frames)
+						np.save(frames_save_dir+'/frame_pkg_{}_{}.npy'.format((global_frame_count - batch_frame_count), (global_frame_count)), frames)
 
-						multi_frame_count=0
-						bottom = frame_count + start_frame
+						print("Frames {} - {} processed".format((global_frame_count-batch_frame_count), global_frame_count))
+						batch_frame_count=0
 						frames = []
+
+					if (global_frame_count >= process_max):
+						frames = np.asarray(frames)
+						np.save(frames_save_dir+'/frame_pkg_{}_{}.npy'.format((global_frame_count - batch_frame_count), (global_frame_count)), frames)
+						print("Frames {} - {} processed".format((global_frame_count-batch_frame_count), global_frame_count))
+						time.sleep(2)
+
 
 
 
@@ -467,37 +457,34 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 				cv2.imshow("FlyRT", vis)
 
 			# Write to .avi
-			if recording==True:
+			if (recording==True) and (multi==False):
 				out.write(vis)
 
 			# FPS Calcs
 			fps = True
 			time1 = time.time() - time0
 
-			fps_calc = float(frame_count/time1)
+			fps_calc = float(process_frame_count/time1)
 
 			# Write current measurment and calcs to CSV
 			if (logging == True) and (all_present==True):
-				logger.write_meas(frame_count, float(frame_count/30), pixel_meas[0:n_inds], ifd_mm, angles)
+				logger.write_meas(process_frame_count, float(frame_count/30), pixel_meas[0:n_inds], ifd_mm, angles)
 
 
-			frame_count+=1
+			process_frame_count+=1
 			if multi==True:
-				multi_frame_count +=1
+				batch_frame_count +=1
+				global_frame_count = process_frame_count + process_min
 
 			stop_bit = config.stop_bit
 			if cv2.waitKey(1) & (stop_bit==True):
-				ard.close_port(ser)
 				break
 
-			if multi_max is not None and (frame_count >= multi_max):
+			if process_max is not None and (global_frame_count >= process_max):
 				break
 
 		else:
 			break
-
-
-
 
 	if FLIR==True:
 		cam.stopCapture()
@@ -505,18 +492,15 @@ def run(cd, start_frame=None, multi_max=None, n_processes=None):
 	else:
 		cap.release()
 
-	if (rt_pp==True) or (rt_ifd==True):
-		ard.close_port(ser)
 
 	if logging==True:
 		logger.close_writer()
 
-	if recording==True:
+	if (recording==True) and (multi==False):
 		out.release()
 
 	cv2.destroyAllWindows()
 	cv2.waitKey()
-
 
 	return None
 

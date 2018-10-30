@@ -9,7 +9,7 @@ def ifd(new_meas, old_ifd, scale_factor):
 		ifd = np.linalg.norm(pos_b - pos_a)
 
 	except IndexError:
-		print("Handle: IFD IndexError")
+		#print("Handle: IFD IndexError")
 		ifd = old_ifd
 
 	return [ifd, ifd]
@@ -51,4 +51,3 @@ def relative_angle(meas_now, old_angles):
 		angles = old_angles
 
 	return angles, angles
-
