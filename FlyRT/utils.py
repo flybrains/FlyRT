@@ -24,5 +24,3 @@ def file_ops():
 		os.chdir(pwd)
 
 	return None
-
-

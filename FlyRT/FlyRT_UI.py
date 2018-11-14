@@ -83,13 +83,9 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
             self.FlyRT_params['scaling'] = None
 
         self.FlyRT_params['vid_scale_check'] = self.VidScaleCheck.isChecked()
-
         self.FlyRT_params['arena_mms'] = self.ArenaDiameterSpin.value()
-
         self.FlyRT_params['drop_frames'] = self.DiscardFramesCheck.isChecked()
-
         self.FlyRT_params['multi'] = bool(self.multiCheck.isChecked())
-
         self.FlyRT_params['thresh_val'] = self.ThreshValueSpin.value()
 
         if self.PostHocRadioButton.isChecked():
@@ -117,12 +113,11 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         self.FlyRT_params['RT_PP'] = self.PeriodicPulseRTERadioButton.isChecked()
         self.FlyRT_params['RT_PP_Delay'] = self.RTPeriodicDelaySpin.value()
         self.FlyRT_params['RT_PP_Period'] = self.RTPeriodicDelaySpin.value()
+        self.FlyRT_params['NoRTE'] = self.NoRTERadioButton.isChecked()
 
         self.FlyRT_params['LED_color_Red'] = self.RTERedRadioButton.isChecked()
         self.FlyRT_params['LED_color_Green'] = self.RTEGreenRadioButton.isChecked()
         self.FlyRT_params['LED_intensity'] = int(self.intensitySlider.value()/10)
-
-
 
 
         if self.PostHocRadioButton.isChecked():
@@ -154,7 +149,6 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
                 with open(open_dir + '/data_dictionary.pkl', 'rb') as f:
             	       cd = pickle.load(f)
 
-
                 self.RecordCheck.setChecked(cd['record'])
                 self.LogCheck.setChecked(cd['log'])
                 self.IFDCheck.setChecked(cd['IFD'])
@@ -168,7 +162,6 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.NIndsSpin.setValue(cd['n_inds'])
                 self.MaskOnCheck.setChecked(cd['mask_on'])
                 self.ArduinoCommText.setText(cd['comm'])
-
                 self.baudRateSpin.setValue(cd['baud'])
                 self.pulseLenSpin.setValue(cd['pulse_len'])
                 self.arduinoLockoutTimeSpin.setValue(cd['pulse_lockout'])
@@ -182,10 +175,10 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.RTEGreenRadioButton.setChecked(cd['LED_color_Green'])
                 self.intensitySlider.setValue(int(cd['LED_intensity']*10))
                 self.VidScaleCheck.setChecked(cd['vid_scale_check'])
-
                 self.PostHocRadioButton.setChecked(cd['PH'])
                 self.RTFLIRRadioButton.setChecked(cd['RTF'])
                 self.RTUSBRadioButton.setChecked(cd['RTU'])
+                self.NoRTERadioButton.setChecked(cd['NoRTE'])
 
 
                 self.crop = cd['crop']

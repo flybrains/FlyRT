@@ -1,8 +1,4 @@
 import  numpy as np
-import  pandas  as  pd
-import scipy.signal
-from scipy.optimize import linear_sum_assignment
-from scipy.spatial.distance import cdist
 import cv2
 import sys
 import time
@@ -10,11 +6,33 @@ from os import system
 import os
 import config
 from datetime import datetime
+import multiprocessing as mp
 
 import FlyRTcore
 
-import multiprocessing as mp
-from collections import deque
+def get_frame_max(img, process_max, process_min, n_processes):
+
+	# Function to determine how many frames to keep per package given:
+	# - Max frame for the current thread
+	# - Start frame for current thread
+	# - How many similar processes are running concurrently
+	# Returns maximum number of frames before initiating new package
+
+	# Frame range for entire thread
+	expected_load = process_max - process_min
+
+	# Amount of RAM to allocate to storing images in memory
+	n_gb = 6
+	n_bytes = img.nbytes
+	frames_per_batch = ((1.0e9*n_gb)/n_processes)/n_bytes
+
+	if frames_per_batch >= expected_load:
+
+		frames_per_batch = expected_load
+
+	return int(frames_per_batch)
+
+
 
 def FlyRT_worker(cd, ind_low, ind_high, n_cores):
 

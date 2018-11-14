@@ -20,174 +20,69 @@ from info_panel import generate_info_panel
 import arduino_interface as ard
 import utils
 import image_patch as ip
+from find_animals import detect_blobs
+from maintain_id import preserve_id
+from tracker import Tracker, Track
+from wings import get_head_coords
 
-
-def get_frame_max(img, process_max, process_min, n_processes):
-
-	# Function to determine how many frames to keep per package given:
-	# - Max frame for the current thread
-	# - Start frame for current thread
-	# - How many similar processes are running concurrently
-	# Returns maximum number of frames before initiating new package
-
-	# Frame range for entire thread
-	expected_load = process_max - process_min
-
-	# Amount of RAM to allocate to storing images in memory
-	n_gb = 6
-	n_bytes = img.nbytes
-	frames_per_batch = ((1.0e9*n_gb)/n_processes)/n_bytes
-
-	if frames_per_batch >= expected_load:
-
-		frames_per_batch = expected_load
-
-	return int(frames_per_batch)
-
-
-def detect_blobs(frame, thresh, meas_last, meas_now):
-
-	# Function to find valid fly contours and return centroid coordinates
-	# Returns new meas_now tuple with error handling to return last valid one if
-	# 	no good measurements found
-
-	# Generate contours with no discrimination
-	_, contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-	# Discriminate contours based on area percentage of total frame. Flies are generally between 0.001 and 0.01
-	good_contours = []
-
-	for i, contour in enumerate(contours):
-
-			if ((cv2.contourArea(contour) / (thresh.shape[0]**2)) < 0.01) and ((cv2.contourArea(contour) / (thresh.shape[0]**2)) > 0.0001):
-
-				good_contours.append(contour)
-
-	meas_last = meas_now.copy()
-	del meas_now[:]
-
-
-	# Second round of discrimination based on whether or not centroid is filled and if it is in masked "non-arena" area
-	better_contours = []
-
-	for i, contour in enumerate(good_contours):
-
-		M = cv2.moments(contour)
-
-		if M['m00'] != 0:
-
-			cx = int(M['m10']/M['m00'])
-			cy = int(M['m01']/M['m00'])
-			vx,vy, _, _ = cv2.fitLine(contours[i], cv2.DIST_L2,0,0.01,0.01)
-
-			center_coords = np.asarray([int(frame.shape[0]/2), int(frame.shape[1]/2)])
-			dist_to_center = np.linalg.norm(center_coords - np.asarray([cx,cy]))
-
-			if (dist_to_center > (frame.shape[0]/2)):
-
-				pass
-
-			elif [int(cx), int(cy)] in [[0,0], [0, frame.shape[0]], [frame.shape[0],0], []]:
-
-				pass
-
-			else:
-
-				# Check whether contour is mostly filled or not
-				area = cv2.contourArea(contour)
-				edge = int(np.sqrt(area))
-				h = int(edge/2)
-				window = thresh[(cy - h):(cy + h), (cx - h):(cx + h)]
-
-				if np.mean(window) != np.nan:
-
-					if (np.mean(window) > 60) and (np.mean(window) < 160):
-
-						better_contours.append(contour)
-
-					try:
-
-						meas_now.append([cx, cy, vx[0], vy[0]])
-
-					except TypeError:
-
-						meas_now.append([cx, cy, vx, vy])
-
-					else:
-
-						cx = 0
-						cy = 0
-						vx,vy,_,_ = 0,0,0,0
-
-	return contours, meas_last, meas_now, len(better_contours)
+from FlyRTmulti import get_frame_max
 
 
 def run(cd, process_min=None, process_max=None, n_processes=None):
 
-	input_vidpath = str(cd['path'])
-	recording =     bool(cd['record'])
-	logging =       bool(cd['log'])
-	scaling =       cd['scaling']
+	# Read in parameters set using the UI
+	input_vidpath = 	str(cd['path'])
+	recording =     	bool(cd['record'])
+	logging =       	bool(cd['log'])
+	scaling =       	cd['scaling']
+	multi = 			cd['multi']
+	n_inds =        	int(cd['n_inds'])
+	heading =       	bool(cd['heading'])
+	wings =         	bool(cd['wings'])
+	ifd_on =        	bool(cd['IFD'])
+	arena_mms =     	float(cd['arena_mms'])
+	thresh_val =    	cd['thresh_val']
+	mask_on =       	bool(cd['mask_on'])
+	crop = 				cd['crop']
+	r = 				cd['r']
+	mask = 				cd['mask']
+	comm =          	str(cd['comm'])
+	baud =          	int(cd['baud'])
+	ifd_min =       	float(cd['IFD_thresh'])
+	pulse_len =     	float(cd['pulse_len'])
+	pulse_lockout = 	float(cd['pulse_lockout'])
+	ifd_time_thresh = 	float(cd['IFD_time_thresh'])
+	rt_ifd = 			bool(cd['RT_IFD'])
+	rt_pp = 			bool(cd['RT_PP'])
+	rt_pp_delay = 		int(cd['RT_PP_Delay'])
+	rt_pp_period = 		int(cd['RT_PP_Period'])
+	rt_LED_red = 		bool(cd['LED_color_Red'])
+	rt_LED_green = 		bool(cd['LED_color_Green'])
+	rt_LED_intensity = 	int(cd['LED_intensity'])
+	FLIR =          	bool(cd['FLIR'])
 
-	multi = 		cd['multi']
-
-	n_inds =        int(cd['n_inds'])
-	heading =       bool(cd['heading'])
-	wings =         bool(cd['wings'])
-	ifd_on =        bool(cd['IFD'])
-	arena_mms =     float(cd['arena_mms'])
-	thresh_val =    cd['thresh_val']
-	mask_on =       bool(cd['mask_on'])
-
-	crop = 			cd['crop']
-	r = 			cd['r']
-	mask = 			cd['mask']
-
-	comm =          str(cd['comm'])
-	baud =          int(cd['baud'])
-	ifd_min =       float(cd['IFD_thresh'])
-	pulse_len =     float(cd['pulse_len'])
-	pulse_lockout = float(cd['pulse_lockout'])
-	ifd_time_thresh = float(cd['IFD_time_thresh'])
-
-	rt_ifd = bool(cd['RT_IFD'])
-	rt_pp = bool(cd['RT_PP'])
-	rt_pp_delay = int(cd['RT_PP_Delay'])
-	rt_pp_period = int(cd['RT_PP_Period'])
-
-	rt_LED_red = bool(cd['LED_color_Red'])
-	rt_LED_green = bool(cd['LED_color_Green'])
-	rt_LED_intensity = int(cd['LED_intensity'])
-
-	FLIR =          bool(cd['FLIR'])
-
-
+	# Conditionally set the LED colors
 	if rt_LED_red==True:
 		rt_LED_color='red'
 	if rt_LED_green==True:
 		rt_LED_color='green'
 
+	# Initialize control flow parameters
 	stop_bit = False
-	mot=True
-	p2a = 0.5
 	roll_call = 0
 	all_present = False
 
+	# If using multithreaded high speed post-hoc processing, initialize capture
 	if multi==True:
-
 		frames=[]
-
 		cwd = os.getcwd()
-
 		frames_save_dir = cwd+'/frame_pkgs'
 		multi_frame_count = 0
-
 		FLIR = False
-
 		cap = cv2.VideoCapture(input_vidpath)
 		cap.set(cv2.CAP_PROP_POS_FRAMES, process_min)
 
-
+	# Set scaling params
 	if arena_mms is not None:
 		mm2pixel = float(arena_mms/crop.shape[0])
 	else:
@@ -198,13 +93,13 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 	else:
 		scaling = 1.0
 
+	# Set up serial port if needed
 	if (rt_ifd) or (rt_pp==True):
 		ser = ard.init_serial(comm, baud)
 		time.sleep(2)
 
-	max_pixel = 210*2
-
 	# Determine final output frame size
+	max_pixel = 420
 	if crop.shape[0]>max_pixel:
 		info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
 		padding=False
@@ -232,10 +127,8 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 		vis[:h1, :w1,:3] = crop
 		vis[:h2, w1:w1+w2,:3] = info
 
-
 	vis = cv2.resize(vis, None, fx = scaling, fy = scaling, interpolation = cv2.INTER_LINEAR)
 	vis_shape = vis.shape
-
 	utils.file_ops()
 
 	# Initialize frame counter
@@ -252,19 +145,19 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 		logger.create_outfile()
 		logger.write_header(process_frame_count, n_inds, ifd=True, headings = True)
 
-
 	# Use calculated shape to initialize writer
 	if (recording==True) and (multi==False):
 		dt = datetime.now()
-		out = cv2.VideoWriter("generated_data/movies/"+str(dt.month)+"_"+str(dt.day)+"_"+str(dt.year)+"_"+str(dt.hour)+str(dt.minute)+'.avi', cv2.VideoWriter_fourcc(*'MJPG'), 30, (vis.shape[1], vis.shape[0]), True)
-
-
+		out = cv2.VideoWriter("generated_data/movies/"+str(dt.month)+"_"+str(dt.day)+"_"+str(dt.year)+"_"+str(dt.hour)+str(dt.minute)+'.avi',
+								cv2.VideoWriter_fourcc(*'MJPG'),
+								30,
+								(vis.shape[1], vis.shape[0]),
+								True)
 
 	# Diff calculation initialization
 	last = 0
 	df = []
-
-	colors = [(0,255,0),(0,255,255),(255,0,255),(255,255,255),(255,255,0),(0,0,255),(255,0,0),(0,0,0)]
+	colors = [(0,255,0),(0,255,255),(255,0,255),(255,255,255),(255,255,0),(255,0,0),(0,0,0)]
 
 	# Initialize backup values for error-prone functions
 	# Individual location(s) measured in the last and current step [x,y]
@@ -281,7 +174,7 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 
 
 
-	# FLIR Camera Zone
+	# FLIR Camera Stuff
 	def capIm():
 		# Function retreives buffer from FLIR camera in place of cv2 capture
 		try:
@@ -318,10 +211,10 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 		this=1
 
 	while(True):
+
 		# Capture frame-by-frame
-
-
 		n_inds = int(cd['n_inds'])
+		time1 = time.time()
 
 		if FLIR==True:
 			ret = True
@@ -339,21 +232,52 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 			#ROI Selection
 			frame = mask_frame(frame, mask, r, mask_on, crop_on=True)
 
-			# +++++++++++++++++++++++++++++++++++++++++
-			# WarmUp Sequence
-			warm_up_complete = False
-
 			#Resize & keep color frame, make BW frame
 			cl_frame = cv2.resize(frame, None, fx = scaling, fy = scaling, interpolation = cv2.INTER_LINEAR)
 			bw_frame = cv2.cvtColor(cl_frame, cv2.COLOR_BGR2GRAY)
-
 			_, thresh = cv2.threshold(bw_frame, thresh_val,255,0)
 
 
 			# Contour detection
-			contours, meas_last, meas_now, num_valid_contours = detect_blobs(cl_frame, thresh, meas_last, meas_now)
+			contours, meas_last, meas_now, num_valid_contours = detect_blobs(cl_frame,
+																			 thresh,
+																			 meas_last,
+																			 meas_now,
+																   			 colors)
+
+			patches, _ = ip.extract_image_patches(cl_frame, [meas[0] for meas in meas_now], (20,20))
+
+			#cv2.imshow('pat', patches[0])
+
+			if len(meas_now)==len(patches):
+				meas_now = [get_head_coords(meas_now[i], patches[i], 20) for i in range(len(meas_now))]
+			else:
+				pass
+
+			angles, old_angles = metrics.relative_angle(meas_now, old_angles)
+
+			ifd, old_ifd = metrics.ifd([[int(meas[0][0]), int(meas[0][1])] for meas in meas_now],
+			 							old_ifd,
+										0.5)
+			ifd_mm = ifd*(mm2pixel)
+
+			# Distance and heading based methods to ID fly
+			# meas_now = preserve_id(ifd_mm, meas_now, meas_last, mm2pixel)
+
+			if process_frame_count > 0:
+				tracker.assign_detection(meas_now, ifd_mm)
+			else:
+				tracker = Tracker(n_inds, meas_now)
+
+			meas_now = [track.get_coords() for track in tracker.list_of_tracks]
 
 
+
+			pixel_meas = [[int(meas[0][0]), int(meas[0][1])] for meas in meas_now]
+			#print(pixel_meas)
+
+
+			# Check to see if expected animal-count is present
 			if num_valid_contours==n_inds:
 				if process_frame_count==0:
 					all_present=True
@@ -365,34 +289,31 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 				if process_frame_count < 300:
 					roll_call = 0
 
-
-
-
+			# Begin logging and metrics if all animals present
 			if all_present==True:
-
-				pixel_meas = [[int(meas[0]), int(meas[1])] for meas in meas_now]
 
 				if process_frame_count==0:
 					history = dl.manage_history(None, pixel_meas, 200, init=True)
+
 				else:
 					try:
 						history = dl.manage_history(history, pixel_meas, 200, init=False)
+
 					except UnboundLocalError:
 						history = dl.manage_history(None, pixel_meas, 200, init=True)
 
 
-				patches, _ = ip.extract_image_patches(cl_frame, pixel_meas, (40,40))
+				# Drawing
+				new_frame = draw_global_results(cl_frame,
+												meas_now,
+												colors,
+												history,
+												n_inds,
+												DL=False,
+												traces=True,
+												heading=False)
 
-				#cv2.imshow('patch',patches[0])
-
-				new_frame = draw_global_results(cl_frame, meas_now, colors, history, n_inds, DL=False, traces=True, heading=False)
-
-				ifd, old_ifd = metrics.ifd(pixel_meas, old_ifd, 0.5)
-
-				ifd_mm = ifd*(mm2pixel)
-
-				angles, old_angles = metrics.relative_angle(meas_now, old_angles)
-
+				# Pass dictionary to data panel for visualization
 				info_dict ={"frame_count": process_frame_count,
 							"fps_calc": fps_calc,
 							"logging":logging,
@@ -402,17 +323,26 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 
 				vis = generate_info_panel(new_frame, info_dict, vis_shape)
 
-
+				# Send light commands if doing an optogenetics expriment
 				if rt_ifd==True:
-					last_pulse_time, accum = ard.lights_IFD(ser, last_pulse_time, accum, ifd_mm, ifd_min, pulse_len, ifd_time_thresh, rt_LED_color, rt_LED_intensity)
+					last_pulse_time, accum = ard.lights_IFD(ser,
+															last_pulse_time,
+															accum,
+															ifd_mm,
+															ifd_min,
+															pulse_len,
+															ifd_time_thresh,
+															rt_LED_color,
+															rt_LED_intensity)
 
 				if (rt_pp==True) and ((time.time() - time0) >= rt_pp_delay):
-					last_pulse_time = ard.lights_PP(ser, last_pulse_time, pulse_len, rt_pp_delay, rt_pp_period, rt_LED_color, rt_LED_intensity)
-
-
-
-
-
+					last_pulse_time = ard.lights_PP(ser,
+													last_pulse_time,
+													pulse_len,
+													rt_pp_delay,
+													rt_pp_period,
+													rt_LED_color,
+													rt_LED_intensity)
 			else:
 				new_frame = cl_frame
 				info_dict = None
@@ -420,24 +350,19 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 
 
 			if (multi==True):
-
 				if (process_frame_count==0):
 					frames_per_batch = get_frame_max(vis, process_max, process_min, n_processes)
 					print('Got Max Frame: ', frames_per_batch)
 
-
 				if (batch_frame_count <= frames_per_batch):
-
 					try:
 						frames.append(vis)
 					except (AttributeError, NameError):
 						frames=vis
 
 					if batch_frame_count==frames_per_batch:
-
 						frames = np.asarray(frames)
 						np.save(frames_save_dir+'/frame_pkg_{}_{}.npy'.format((global_frame_count - batch_frame_count), (global_frame_count)), frames)
-
 						print("Frames {} - {} processed".format((global_frame_count-batch_frame_count), global_frame_count))
 						batch_frame_count=0
 						frames = []
@@ -449,49 +374,47 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 						time.sleep(2)
 
 
-
-
-
 			# Show present frame. Suppress to improve realtime speed
-			if multi==False:
-				cv2.imshow("FlyRT", vis)
+			#if multi==False:
+				#cv2.imshow("FlyRT", vis)
+				#cv2.imshow('t',thresh)
 
 			# Write to .avi
 			if (recording==True) and (multi==False):
 				out.write(vis)
 
-			# FPS Calcs
-			fps = True
-			time1 = time.time() - time0
-
-			fps_calc = float(process_frame_count/time1)
-
 			# Write current measurment and calcs to CSV
 			if (logging == True) and (all_present==True):
-				logger.write_meas(process_frame_count, float(frame_count/30), pixel_meas[0:n_inds], ifd_mm, angles)
+				logger.write_meas(process_frame_count, float(process_frame_count/30), pixel_meas[0:n_inds], ifd_mm, angles)
 
-
+			# Increment multithreaded counts
 			process_frame_count+=1
 			if multi==True:
 				batch_frame_count +=1
 				global_frame_count = process_frame_count + process_min
 
+			# FPS Calcs
+			fps = True
+			time2 = time.time()
+			fps_calc = float(process_frame_count/(time2-time0))
+
+			# GUI Stop Tracking Button
 			stop_bit = config.stop_bit
 			if cv2.waitKey(1) & (stop_bit==True):
 				break
 
+			# Break if multi-batch finishes before process limit
 			if process_max is not None and (global_frame_count >= process_max):
 				break
-
 		else:
 			break
 
+	# Clean up
 	if FLIR==True:
 		cam.stopCapture()
 		cam.disconnect()
 	else:
 		cap.release()
-
 
 	if logging==True:
 		logger.close_writer()
@@ -506,8 +429,8 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 
 if __name__=='__main__':
 
+	# Quick sample case for testing, nothing special about these params
 	mask, r, crop = launch_GUI('C:/Users/Patrick/Desktop/Video3.mp4')
-
 	cd = {'path': 'C:/Users/Patrick/Desktop/Video3.mp4',
 		  'record':False,
 		  'log':False,

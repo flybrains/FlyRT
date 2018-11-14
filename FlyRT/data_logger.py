@@ -15,11 +15,11 @@ class Logger(object):
 		minute = str(dt.minute)
 
 		self.name_string = month+"_"+day+"_"+year+"_"+hour+minute+".csv"
-		
+
 	def create_outfile(self):
 		self.f = open(os.getcwd()+"\\generated_data\\logs\\"+self.name_string, 'w', newline="")
 		self.writer = csv.writer(self.f, delimiter=',')
-		
+
 		return None
 
 	def write_header(self, frame_count, n_inds, ifd=True, headings=False):

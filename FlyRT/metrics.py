@@ -1,19 +1,13 @@
 import numpy as np
 
 def ifd(new_meas, old_ifd, scale_factor):
-
 	try:
 		pos_a = np.asarray(new_meas[0])
 		pos_b = np.asarray(new_meas[1])
-
 		ifd = np.linalg.norm(pos_b - pos_a)
-
 	except IndexError:
-		#print("Handle: IFD IndexError")
 		ifd = old_ifd
-
 	return [ifd, ifd]
-
 
 def relative_angle(meas_now, old_angles):
 	# Draw line from animal centroid to other animal. This is baseline
@@ -35,13 +29,12 @@ def relative_angle(meas_now, old_angles):
 		return angle
 
 	try:
-		animal_1_pos = (meas_now[0][0], meas_now[0][1])
-		animal_1_dir = ((meas_now[0][0] + meas_now[0][2]), (meas_now[0][1] + meas_now[0][3]))
+		animal_1_pos = (meas_now[0][0][0], meas_now[0][0][1])
+		animal_1_dir = (meas_now[0][1][0], meas_now[0][1][1])
 
-		animal_2_pos = (meas_now[1][0], meas_now[1][1])
-		animal_2_dir = ((meas_now[1][0] + meas_now[1][2]), (meas_now[1][1] + meas_now[1][3]))
-
-
+		animal_2_pos = (meas_now[1][0][0], meas_now[1][0][1])
+		animal_2_dir = (meas_now[1][1][0], meas_now[1][1][1])
+		
 		one_to_two = angle_between_points(animal_1_dir, animal_1_pos, animal_2_pos)
 		two_to_one = angle_between_points(animal_2_dir, animal_2_pos, animal_1_pos)
 

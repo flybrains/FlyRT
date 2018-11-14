@@ -5,14 +5,14 @@ from PyQt5.QtGui import QIcon
 
 
 class FileBox(QWidget):
- 
+
     def __init__(self):
         super().__init__()
-        
+
         self.initUI()
-        
-        
-    def initUI(self):      
+
+
+    def initUI(self):
 
         self.textEdit = QTextEdit()
         self.setCentralWidget(self.textEdit)
@@ -25,13 +25,13 @@ class FileBox(QWidget):
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
-        fileMenu.addAction(openFile)       
-        
+        fileMenu.addAction(openFile)
+
         self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('File dialog')
         self.show()
-        
-        
+
+
     def showDialog(self):
 
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
@@ -41,8 +41,8 @@ class FileBox(QWidget):
 
             with f:
                 data = f.read()
-                self.textEdit.setText(data)        
-        
+                self.textEdit.setText(data)
+
 if __name__ == '__main__':
-    
+
     app = QApplication(sys.argv)
