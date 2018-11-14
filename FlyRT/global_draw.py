@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 
-def draw_global_results(img, meas_now, colors, history, n_inds, DL = False, wings=False, traces=True, heading=True):
+def draw_global_results(img, meas_now, colors, history, n_inds, wings=False, traces=True, heading=True):
 
     for i in range(n_inds):
         if len(history)>0:
@@ -14,19 +14,17 @@ def draw_global_results(img, meas_now, colors, history, n_inds, DL = False, wing
         if traces==True:
             for centroid in history:
                 if len(centroid)==n_inds:
-                    new_frame = cv2.circle(img, (centroid[i][0], centroid[i][1]), 1, colors[i], 1, cv2.LINE_AA)
+                    new_frame = cv2.circle(img, (int(centroid[i][0]), int(centroid[i][1])), 1, colors[i], 1, cv2.LINE_AA)
                 else:
                     pass
 
         if heading==True:
             try:
-                fpx1 = meas_now[i][1][0]
-                fpy1 = meas_now[i][1][1]
-                fpx2 = meas_now[i][2][0]
-                fpy2 = meas_now[i][2][1]
+                head_x = meas_now[i][1][0]
+                head_y = meas_now[i][1][1]
 
-                new_frame = cv2.line(img, (fpx1, fpy1), (fpx2, fpy2), colors[i], 1)
-                new_frame = cv2.circle(img, (fpx1, fpy1), 3, (0,0,255), 4, cv2.LINE_AA)
+                new_frame = cv2.line(img, (int(centroid[i][0]), int(centroid[i][1])), (int(head_x), int(head_y)), colors[i], 1)
+                new_frame = cv2.circle(img, (int(head_x), int(head_y)), 3, (0,0,255), 4, cv2.LINE_AA)
 
             except IndexError:
                     pass

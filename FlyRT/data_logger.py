@@ -70,7 +70,6 @@ class Logger(object):
 		self.f.close()
 
 
-
 def manage_history(history, pixel_meas, hist_len, init=False):
 	if init:
 		history = []
@@ -78,3 +77,15 @@ def manage_history(history, pixel_meas, hist_len, init=False):
 	if len(history) > hist_len:
 		history.pop(0)
 	return history
+
+def history(frame_count, history, pixel_meas):
+
+	if frame_count==0:
+		return manage_history(None, pixel_meas, 200, init=True)
+
+	else:
+		try:
+			return manage_history(history, pixel_meas, 200, init=False)
+
+		except UnboundLocalError:
+			return manage_history(None, pixel_meas, 200, init=True)

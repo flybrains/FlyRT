@@ -1,10 +1,10 @@
 import numpy as np
 
-def ifd(new_meas, old_ifd, scale_factor):
+def ifd(new_meas, old_ifd, scale_factor, mm2pixel):
 	try:
 		pos_a = np.asarray(new_meas[0])
 		pos_b = np.asarray(new_meas[1])
-		ifd = np.linalg.norm(pos_b - pos_a)
+		ifd = np.linalg.norm(pos_b - pos_a)*mm2pixel
 	except IndexError:
 		ifd = old_ifd
 	return [ifd, ifd]
@@ -34,7 +34,7 @@ def relative_angle(meas_now, old_angles):
 
 		animal_2_pos = (meas_now[1][0][0], meas_now[1][0][1])
 		animal_2_dir = (meas_now[1][1][0], meas_now[1][1][1])
-		
+
 		one_to_two = angle_between_points(animal_1_dir, animal_1_pos, animal_2_pos)
 		two_to_one = angle_between_points(animal_2_dir, animal_2_pos, animal_1_pos)
 

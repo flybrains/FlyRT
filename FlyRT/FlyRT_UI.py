@@ -80,10 +80,15 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         if (self.VidScaleCheck.isChecked()):
             self.FlyRT_params['scaling'] = self.VidScaleTextEdit.toPlainText()
         else:
-            self.FlyRT_params['scaling'] = None
+            self.FlyRT_params['scaling'] = '1.0'
 
         self.FlyRT_params['vid_scale_check'] = self.VidScaleCheck.isChecked()
-        self.FlyRT_params['arena_mms'] = self.ArenaDiameterSpin.value()
+
+        if self.ArenaDiameterSpin.value() is not None:
+            self.FlyRT_params['arena_mms'] = self.ArenaDiameterSpin.value()
+        else:
+            self.FlyRT_params['arena_mms'] = 40
+
         self.FlyRT_params['drop_frames'] = self.DiscardFramesCheck.isChecked()
         self.FlyRT_params['multi'] = bool(self.multiCheck.isChecked())
         self.FlyRT_params['thresh_val'] = self.ThreshValueSpin.value()
@@ -118,6 +123,14 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
         self.FlyRT_params['LED_color_Red'] = self.RTERedRadioButton.isChecked()
         self.FlyRT_params['LED_color_Green'] = self.RTEGreenRadioButton.isChecked()
         self.FlyRT_params['LED_intensity'] = int(self.intensitySlider.value()/10)
+
+        if self.FlyRT_params['LED_color_Red'] == True:
+            self.FlyRT_params['rt_LED_color']='red'
+        if self.FlyRT_params['LED_color_Green']==True:
+            self.FlyRT_params['rt_LED_color']='green'
+        else:
+            self.FlyRT_params['rt_LED_color']='green'
+
 
 
         if self.PostHocRadioButton.isChecked():
@@ -253,9 +266,9 @@ class FlyRT(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.idx = 0
         if self.FLIR==False:
-            self.mask, self.r, self.crop = saROI.launch_GUI(self.inpath)
+            self.r, self.crop = saROI.selectROI(self.inpath)
         else:
-            self.mask, self.r, self.crop = saROI.launch_FLIR_GUI(self.idx)
+            self.r, self.crop = saROI.selectROIFLIR(self.idx)
 
         self.FlyRT_params['crop'] = self.crop
         self.FlyRT_params['r'] = self.r

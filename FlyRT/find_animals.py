@@ -1,6 +1,11 @@
 import cv2
 import numpy as np
 import math
+from head_detector import get_head_point
+
+# def generate_patch(frame, centroid, patch):
+#
+#
 
 def detect_blobs(frame, thresh, meas_last, meas_now, colors):
 
@@ -13,19 +18,18 @@ def detect_blobs(frame, thresh, meas_last, meas_now, colors):
 
 	# Discriminate contours based on area percentage of total frame. Flies are generally between 0.001 and 0.01
 	good_contours = []
+	wins = []
 	for i, contour in enumerate(contours):
 			if ((cv2.contourArea(contour) / (thresh.shape[0]**2)) < 0.01) and ((cv2.contourArea(contour) / (thresh.shape[0]**2)) > 0.0001):
 				good_contours.append(contour)
 
-		
+
 	if len(meas_last)==len(meas_now):
 		meas_last = meas_now.copy()
 		del meas_now[:]
 
 	# Second round of discrimination based on whether or not centroid is filled and if it is in masked "non-arena" area
 	better_contours = []
-
-
 
 	for i, contour in enumerate(good_contours):
 
@@ -34,7 +38,6 @@ def detect_blobs(frame, thresh, meas_last, meas_now, colors):
 
 			cx = np.float16(M['m10']/M['m00'])
 			cy = np.float16(M['m01']/M['m00'])
-			#vx,vy, _, _ = cv2.fitLine(contours[i], cv2.DIST_L2,0,0.01,0.01)
 
 			center_coords = np.asarray([int(frame.shape[0]/2), int(frame.shape[1]/2)])
 			dist_to_center = np.linalg.norm(center_coords - np.asarray([cx,cy]))
@@ -66,11 +69,6 @@ def detect_blobs(frame, thresh, meas_last, meas_now, colors):
 
 						ellipse = cv2.fitEllipse(contour)
 
-						rect = cv2.minAreaRect(contour)
-						box = cv2.boxPoints(rect)
-						box = np.int0(box)
-						#new_frame = cv2.drawContours(frame,[box],0,(0,191,255),2)
-
 						MAG = ellipse[1][1]*0.5
 						mag = ellipse[1][0]*0.5
 
@@ -89,18 +87,51 @@ def detect_blobs(frame, thresh, meas_last, meas_now, colors):
 						fpx2 = int(cx - MAG*math.radians(x_ang2))
 						fpy2 = int(cy - MAG*math.radians(y_ang2))
 
-						meas_now.append([[cx, cy], [fpx1, fpy1], [fpx2, fpy2]])
+						# Need to determine which between [fpx1, fpy1], [fpx2, fpy2]
+						# is animal head, append along with cx, cy
+
+						# Do disoriented patch coords
+						disoriented_patch = cv2.boundingRect(contour)
+
+						# Make disoriented patch a bit bigger so full bigger animal can fit
+						scale_factor = 3
+						w = int(disoriented_patch[2]*scale_factor)
+						h = int(disoriented_patch[3]*scale_factor)
+
+						dim = np.max([w,h])
+
+						x = int((disoriented_patch[0]) - (dim - disoriented_patch[2])/2)
+						y = int((disoriented_patch[1]) - (dim -disoriented_patch[3])/2)
+
+						# Grab pixels from these dims from color img:
+						patch = frame[y:(y+h), x:(x+h)]
+
+						# Generate minimum bounding rectangle around the larger contour
+						head_point = get_head_point(patch, [x,y], [cx, cy], [[fpx1, fpy1], [fpx2, fpy2]])
+
+
+						# Make high-low contour to feed to VVV
+
+						# Get pixels in rectangular array, do contour detection and find back
+						# Center of gravity
+
+						# Get the global coordinates of the back COG
+
+						# The [fpx1, fpx2] that is farthest from back COG is heading
+
+						# Append head coord
+
+						meas_now.append([[cx, cy], head_point])
 
 
 					except TypeError:
 
-
-						meas_now.append([[cx, cy], [fpx1, fpy1], [fpx2, fpy2]])
+						meas_now.append([[0,0], [1,1]])
 
 					else:
 
 						cx = 0
 						cy = 0
-						#vx,vy,_,_ = 0,0,0,0
 
-	return contours, meas_last, meas_now, len(better_contours)
+
+	return contours, meas_last, meas_now, len(better_contours), wins

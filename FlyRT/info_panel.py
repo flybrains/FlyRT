@@ -1,6 +1,40 @@
 import numpy as np
 import cv2
 
+def get_vis_shape(crop, scaling):
+	max_pixel = 420
+	if crop.shape[0]>max_pixel:
+		info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
+		padding=False
+	else:
+		info = np.zeros((max_pixel, 220, 3), np.uint8)
+		pad = np.zeros((max_pixel - crop.shape[0], (crop.shape[0]), 3), np.uint8)
+		padding=True
+
+	if padding==True:
+		h1, w1 = crop.shape[:2]
+		h2, w2 = pad.shape[:2]
+		tile1 = np.zeros((max(h1, h2), w2, 3), np.uint8)
+		tile1[:h1,:w1, :3] = crop
+		h3, w3 = tile1.shape[:2]
+		h4, w4 = info.shape[:2]
+		vis = np.zeros((max(h3, h4), w3+w4,3), np.uint8)
+		vis[:h3, :w3,:3] = tile1
+		vis[:h4, w3:w3+w4,:3] = info
+	else:
+		info = np.zeros((crop.shape[0], int((crop.shape[0])*0.5), 3), np.uint8)
+		h1, w1 = crop.shape[:2]
+		h2, w2 = info.shape[:2]
+
+		vis = np.zeros((max(h1, h2), w1+w2,3), np.uint8)
+		vis[:h1, :w1,:3] = crop
+		vis[:h2, w1:w1+w2,:3] = info
+
+	vis = cv2.resize(vis, None, fx = scaling, fy = scaling, interpolation = cv2.INTER_LINEAR)
+
+	return vis, vis.shape
+
+
 def generate_info_panel(frame, data_dict, vis_shape):
 
 	max_pixel = 210*2
@@ -19,21 +53,14 @@ def generate_info_panel(frame, data_dict, vis_shape):
 
 		time_string = "  Trial Time: " + "{:.2f}".format(float(data_dict['frame_count']/30)) + "s"
 		fps_string = "  Processing fps: " + "{:.2f}".format(data_dict['fps_calc'])
-
 		log_string = "  Logging: " + str(data_dict['logging'])
-
 		ifd_string = "Inter-Fly Distance: " +  "{:.2f}".format(data_dict['ifd']) + "mm"
-
 		rec_string = "  Recording: " + str(data_dict['recording'])
-
 		h1_string = "Headings: "
 		h2_string = "  One-to-Two: " + "{:.2f}".format(data_dict['heading'][0])
 		h3_string = "  Two-to-One: " + "{:.2f}".format(data_dict['heading'][1])
-
-
 		# ============================================================================================================
 		info = cv2.putText(info, "FlyRT", (6, 24), cv2.FONT_HERSHEY_DUPLEX , 0.8, (0,255,0), 1, cv2.LINE_AA)
-
 		info = cv2.putText(info, "System Information:", (10, base+5), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
 		info = cv2.putText(info, time_string, (10, base+20), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)
 		info = cv2.putText(info, fps_string, (10, base+35), cv2.FONT_HERSHEY_DUPLEX , 0.4, (0,255,0), 1, cv2.LINE_AA)

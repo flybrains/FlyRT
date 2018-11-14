@@ -35,7 +35,6 @@ def get_head_coords(meas_now, img, patch_size = 40):
     win = cv2.cvtColor(win, cv2.COLOR_GRAY2BGR)
     colors = [(0,255,0),(0,0,255),(255,0,255),(255,255,255),(255,255,0),(255,0,0),(0,0,0)]
 
-
     cx, cy = my_contour[0]
 
     back_centroid = np.asarray([(global_top_left[0] + cx), (global_top_left[1] + cy)])

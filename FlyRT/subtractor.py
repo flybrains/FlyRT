@@ -32,13 +32,13 @@ def subtractor(crop, thresh_val):
 			if (np.mean(window) > 60) and (np.mean(window) < 160):
 				better_contours.append(contour)
 
-		
+
 		subtractor[(cy - edge):(cy + edge), (cx - edge):(cx + edge)] = 255
 
 
 	thresh_img = cv2.cvtColor(thresh_img, cv2.COLOR_GRAY2BGR)
 	thresh_img = cv2.drawContours(thresh_img, better_contours, -1, (0,0,255), 1)
-	
+
 	cv2.imwrite('subtractor.jpg', subtractor)
 	cv2.imwrite('thresh_img.jpg', thresh_img_og)
 

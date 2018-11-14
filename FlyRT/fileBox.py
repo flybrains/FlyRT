@@ -11,7 +11,6 @@ class FileBox(QWidget):
 
         self.initUI()
 
-
     def initUI(self):
 
         self.textEdit = QTextEdit()
