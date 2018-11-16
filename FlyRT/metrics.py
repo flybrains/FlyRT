@@ -1,13 +1,19 @@
 import numpy as np
 
-def ifd(new_meas, old_ifd, scale_factor, mm2pixel):
+def ifd(centroids, old_ifds, scale_factor, mm2pixel, n_inds):
 	try:
-		pos_a = np.asarray(new_meas[0])
-		pos_b = np.asarray(new_meas[1])
-		ifd = np.linalg.norm(pos_b - pos_a)*mm2pixel
+		ifds = []
+		pos = [c for c in centroids]
+
+		if n_inds == 2:
+			ifds = np.linalg.norm(pos[0] - pos[1])*mm2pixel
+		if n_inds == 3:
+			ifds = [np.linalg.norm(pos[0] - pos[1])*mm2pixel, np.linalg.norm(pos[0] - pos[2])*mm2pixel, np.linalg.norm(pos[1] - pos[2])*mm2pixel]
+
 	except IndexError:
-		ifd = old_ifd
-	return [ifd, ifd]
+		ifds = old_ifds
+
+	return [ifds, ifds]
 
 def relative_angle(meas_now, old_angles):
 	# Draw line from animal centroid to other animal. This is baseline

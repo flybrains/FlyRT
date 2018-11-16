@@ -20,7 +20,7 @@ import utils
 import image_patch as ip
 from find_animals import detect_blobs
 from maintain_id import preserve_id
-from tracker import Tracker, Track
+from tracker import Tracker, Track, Detection
 from wings import get_head_coords
 
 def run(cd, process_min=None, process_max=None, n_processes=None):
@@ -92,16 +92,14 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 	last, df = 0, []
 
 	# Individual location(s) measured in the last and current step [x,y]
-	meas_last, meas_now= list(np.zeros((n_inds,4))), list(np.zeros((n_inds,4)))
-
-	# Init backups for error-prone functions
-	last_good_list, old_meas, old_ind = None, [[meas_last, meas_now]], [None]
+	meas_last, meas_now = [[[0,0], [0,0]], [[0,0], [0,0]]], [[[0,0], [0,0]], [[0,0], [0,0]]]
 
 	# Initialize metrics backups
-	old_ifd, old_angles = 0, [0,0]
+	old_ifds, old_angles, last_heads = np.asarray([0,0,0]), [0,0], [0,0]
 
 	# Initialize RT Experiment Backups
 	last_pulse_time, accum = 0, [time.time(), None]
+
 
 	# FLIR Camera Stuff
 	def capIm():
@@ -160,22 +158,21 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 
 			#+++++++++++++++++++++
 			# Detect contours
-			contours, meas_last, meas_now, num_valid_contours, wins = detect_blobs(cl_frame, thresh, meas_last,  meas_now,  colors)
-			print(meas_now)
+			list_of_detections, num_valid_contours = detect_blobs(cl_frame, thresh, meas_last,  meas_now, last_heads, colors)
 
-			# Generate metrics
-			angles, old_angles = metrics.relative_angle(meas_now, old_angles)
-			ifd, old_ifd = metrics.ifd([[int(meas[0][0]), int(meas[0][1])] for meas in meas_now], old_ifd, 0.5, mm2pixel)
+			#Assign detections to Track object
+			try:
+				tracker.assign_detections(list_of_detections, n_inds)
+			except NameError:
+				if len(list_of_detections)==n_inds:
+					tracker = Tracker(n_inds, list_of_detections, process_frame_count)
+					tracker.assign_detections(list_of_detections, n_inds)
 
-			# Assign detections to Track object
-			if process_frame_count > 0:
-				tracker.assign_detection(meas_now, ifd)
-			else:
-				tracker = Tracker(n_inds, meas_now)
+			meas_now = [[track.get_mr_centroid(), track.get_mr_head()] for track in tracker.list_of_tracks]
+			cent_meas = [[meas[0][0], meas[0][1]] for meas in meas_now]
+			head_meas = [[meas[1][0], meas[1][1]] for meas in meas_now]
 
-			meas_now = [track.get_coords() for track in tracker.list_of_tracks]
-			pixel_meas = [[int(meas[0][0]), int(meas[0][1])] for meas in meas_now]
-			# ++++++++++++++++++++++++++
+			ifds, old_ifds = metrics.ifd([np.asarray(cm) for cm in cent_meas], old_ifds, 0.5, mm2pixel, n_inds)
 
 			# Check to see if expected animal-count is present
 			if num_valid_contours==n_inds:
@@ -192,18 +189,18 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 			if all_present==True:
 
 				# Generate trace history
-				history = dl.history(process_frame_count, history, pixel_meas)
+				history = dl.history(process_frame_count, history, cent_meas)
 
 				# Drawing
-				new_frame = draw_global_results(cl_frame, meas_now, colors, history, n_inds, traces=True, heading=True)
+				new_frame = draw_global_results(cl_frame, cent_meas, head_meas, colors, history, n_inds, traces=True, heading=True)
 
 				# Pass dictionary to data panel for visualization
 				info_dict ={"frame_count": process_frame_count,
 							"fps_calc": fps_calc,
 							"logging":logging,
-							"ifd": ifd,
-							"recording": recording,
-							"heading": angles}
+							"ifds": float(ifds),
+							"recording": recording}#,
+							#"heading": angles}
 
 				# Generate visualization from drawn frame and info
 				vis = generate_info_panel(new_frame, info_dict, vis_shape)
@@ -219,16 +216,19 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 				info_dict = None
 				vis =  generate_info_panel(new_frame, info_dict, vis_shape)
 
-			# Show present frame. Suppress to improve realtime speed
+			# # Show present frame. Suppress to improve realtime speed
 			cv2.imshow("FlyRT", vis)
-
-			# Write to .avi
-			if (recording==True):
-				out.write(vis)
+			# #
+			# # Write to .avi
+			# if (recording==True):
+			# 	out.write(vis)
 
 			# Write current measurment and calcs to CSV
-			if (logging == True) and (all_present==True):
-				logger.write_meas(process_frame_count, float(process_frame_count/30), pixel_meas[0:n_inds], ifd, angles)
+		# 	if (logging == True) and (all_present==True):
+		# 		logger.write_meas(process_frame_count, float(process_frame_count/30), pixel_meas[0:n_inds], ifd, angles)
+		#
+
+
 
 			# FPS Calcs
 			process_frame_count+=1

@@ -26,15 +26,18 @@ def get_head_point(patch, patch_corner, centroid, candidates):
 			my_contours.append([[cx, cy], cv2.contourArea(contour), contour])
 
 	areas = [elem[1] for elem in my_contours]
-	col_idx = areas.index(max(areas))
-	my_contour = my_contours[col_idx]
+	if len(areas) > 0:
+		col_idx = areas.index(max(areas))
+		my_contour = my_contours[col_idx]
 
-	cx, cy = my_contour[0]
-	back_centroid = np.asarray([(tlx + cx), (tly + cy)])
+		cx, cy = my_contour[0]
+		back_centroid = np.asarray([(tlx + cx), (tly + cy)])
 
-	point_dists = [np.linalg.norm(back_centroid - candidates[i]) for i in range(2)]
-	head_idx = point_dists.index(max(point_dists))
-	head_point = candidates[head_idx]
+		point_dists = [np.linalg.norm(back_centroid - candidates[i]) for i in range(2)]
+		head_idx = point_dists.index(max(point_dists))
+		head_point = candidates[head_idx]
+	else:
+		head_point = np.nan
 
 
 	return head_point
