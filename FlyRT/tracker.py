@@ -4,7 +4,7 @@ import numpy as np
 def linear_assingment(list_of_detections, list_of_tracks, full=False):
 
     if full==True:
-        matrix = [[det.centroid[0],det.centroid[1], det.head[0], det.head[1]] for det in list_of_detections]
+        matrix = [[det.centroid[0], det.centroid[1], det.head[0], det.head[1]] for det in list_of_detections]
 
         for i, track in enumerate(list_of_tracks):
             sub_dists = []
@@ -23,11 +23,9 @@ def linear_assingment(list_of_detections, list_of_tracks, full=False):
             track.append_centroid([matrix[col_idx][0], matrix[col_idx][1]])
             track.append_head([matrix[col_idx][2], matrix[col_idx][3]])
             track.append_meas_now()
-            matrix = [mat for i, mat in enumerate(matrix) if i!=col_idx]
 
     if full==False:
         matrix = [[det.centroid[0],det.centroid[1], det.head] for det in list_of_detections]
-
 
         for i,track in enumerate(list_of_tracks):
             sub_dists = []
@@ -73,6 +71,9 @@ class Detection(object):
         return None
     def add_area(self, area):
         self.area = area
+        return None
+    def add_win(self, win):
+        self.win = win
         return None
 
 

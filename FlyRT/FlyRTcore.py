@@ -158,12 +158,12 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 
 			#+++++++++++++++++++++
 			# Detect contours
-			list_of_detections, num_valid_contours = detect_blobs(cl_frame, thresh, meas_last,  meas_now, last_heads, colors)
+			list_of_detections, num_valid_contours, patches = detect_blobs(cl_frame, thresh, meas_last,  meas_now, last_heads, colors)
 
 			#Assign detections to Track object
 			try:
 				tracker.assign_detections(list_of_detections, n_inds)
-			except NameError:
+			except UnboundLocalError:
 				if len(list_of_detections)==n_inds:
 					tracker = Tracker(n_inds, list_of_detections, process_frame_count)
 					tracker.assign_detections(list_of_detections, n_inds)
@@ -216,10 +216,10 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 				info_dict = None
 				vis =  generate_info_panel(new_frame, info_dict, vis_shape)
 
-			# # Show present frame. Suppress to improve realtime speed
+			# Show present frame. Suppress to improve realtime speed
 			cv2.imshow("FlyRT", vis)
-			# #
-			# # Write to .avi
+			#
+			# Write to .avi
 			# if (recording==True):
 			# 	out.write(vis)
 
