@@ -94,9 +94,6 @@ class Track(object):
     def get_mr_centroid(self):
         return np.asarray(self.measurements[-1][0])
 
-    def get_cent_origin(self):
-        return np.asarray(self.measurements[-20][0])
-
     def get_mr_head(self):
         return np.asarray(self.measurements[-1][1])
 
@@ -137,7 +134,7 @@ class Tracker(object):
             # centroid and head
             not_nones = [1 for det in list_of_detections if (det.head is not None)]
 
-            if (len(not_nones)==n_inds) and (len(list_of_detections)==n_inds):
+            if (len(not_nones)==n_inds):
                 linear_assingment(list_of_detections, self.list_of_tracks, full=True)
             # If any new head measurements are missing or None, do linear assignment
             # with only centroid of tracks most recent centroid and head.

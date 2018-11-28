@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 
-def draw_global_results(img, cent_meas, head_meas, colors, history, n_inds, targets, traces=True, heading=True):
+def draw_global_results(img, cent_meas, head_meas, colors, history, n_inds, wings=False, traces=True, heading=True):
 
 
     for i in range(n_inds):
@@ -12,16 +12,10 @@ def draw_global_results(img, cent_meas, head_meas, colors, history, n_inds, targ
             except IndexError:
                 pass
 
-        # if targets[0] is not None:
-        #     new_frame = cv2.circle(img, (targets[i][0], targets[i][1]), 10, (255,0,0), 10, cv2.LINE_AA)
-
-
         if traces==True:
             for centroid in history:
                 if len(centroid)==n_inds:
                     new_frame = cv2.circle(img, (int(centroid[i][0]), int(centroid[i][1])), 1, colors[i], 1, cv2.LINE_AA)
-
-
                 else:
                     pass
 
