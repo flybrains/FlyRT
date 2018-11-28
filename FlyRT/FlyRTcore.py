@@ -22,6 +22,7 @@ from find_animals import detect_blobs
 from maintain_id import preserve_id
 from tracker import Tracker, Track, Detection
 from wings import get_head_coords
+from head_detector import get_moving_dir
 
 def run(cd, process_min=None, process_max=None, n_processes=None):
 
@@ -58,7 +59,7 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 	colors = [(0,255,0),(0,255,255),(255,0,255),(255,255,255),(255,255,0),(255,0,0),(0,0,0)]
 
 	# Initialize control flow parameters
-	stop_bit, roll_call, all_present, history = False, 0, False, None
+	stop_bit, roll_call, all_present, history, targets = False, 0, False, None, [None,None]
 
 	# Initialize frame counters
 	process_frame_count, fps_calc = 0, 0
@@ -81,7 +82,7 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 	if logging==True:
 		logger = dl.Logger()
 		logger.create_outfile()
-		logger.write_header(process_frame_count, n_inds, ifd=True, headings = True)
+		logger.write_header(process_frame_count, n_inds, ifd=True, headings = False)
 
 	# Use calculated shape to initialize writer
 	if (recording==True):
@@ -158,15 +159,19 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 
 			#+++++++++++++++++++++
 			# Detect contours
-			list_of_detections, num_valid_contours, patches = detect_blobs(cl_frame, thresh, meas_last,  meas_now, last_heads, colors)
+			list_of_detections, num_valid_contours, win = detect_blobs(cl_frame, thresh, meas_last,  meas_now, last_heads, colors, targets)
 
 			#Assign detections to Track object
 			try:
 				tracker.assign_detections(list_of_detections, n_inds)
-			except UnboundLocalError:
+			except NameError:
 				if len(list_of_detections)==n_inds:
 					tracker = Tracker(n_inds, list_of_detections, process_frame_count)
 					tracker.assign_detections(list_of_detections, n_inds)
+
+			if process_frame_count > 21:
+				targets = get_moving_dir(tracker.list_of_tracks)
+
 
 			meas_now = [[track.get_mr_centroid(), track.get_mr_head()] for track in tracker.list_of_tracks]
 			cent_meas = [[meas[0][0], meas[0][1]] for meas in meas_now]
@@ -192,7 +197,9 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 				history = dl.history(process_frame_count, history, cent_meas)
 
 				# Drawing
-				new_frame = draw_global_results(cl_frame, cent_meas, head_meas, colors, history, n_inds, traces=True, heading=True)
+				new_frame = draw_global_results(cl_frame, cent_meas, head_meas, colors, history, n_inds, targets, traces=True, heading=False)
+
+
 
 				# Pass dictionary to data panel for visualization
 				info_dict ={"frame_count": process_frame_count,
@@ -216,10 +223,10 @@ def run(cd, process_min=None, process_max=None, n_processes=None):
 				info_dict = None
 				vis =  generate_info_panel(new_frame, info_dict, vis_shape)
 
-			# Show present frame. Suppress to improve realtime speed
+			# # Show present frame. Suppress to improve realtime speed
 			cv2.imshow("FlyRT", vis)
-			#
-			# Write to .avi
+			# #
+			# # Write to .avi
 			# if (recording==True):
 			# 	out.write(vis)
 

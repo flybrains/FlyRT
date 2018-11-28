@@ -4,7 +4,7 @@ import numpy as np
 def linear_assingment(list_of_detections, list_of_tracks, full=False):
 
     if full==True:
-        matrix = [[det.centroid[0], det.centroid[1], det.head[0], det.head[1]] for det in list_of_detections]
+        matrix = [[det.centroid[0],det.centroid[1], det.head[0], det.head[1]] for det in list_of_detections]
 
         for i, track in enumerate(list_of_tracks):
             sub_dists = []
@@ -23,9 +23,11 @@ def linear_assingment(list_of_detections, list_of_tracks, full=False):
             track.append_centroid([matrix[col_idx][0], matrix[col_idx][1]])
             track.append_head([matrix[col_idx][2], matrix[col_idx][3]])
             track.append_meas_now()
+            matrix = [mat for i, mat in enumerate(matrix) if i!=col_idx]
 
     if full==False:
         matrix = [[det.centroid[0],det.centroid[1], det.head] for det in list_of_detections]
+
 
         for i,track in enumerate(list_of_tracks):
             sub_dists = []
@@ -72,9 +74,6 @@ class Detection(object):
     def add_area(self, area):
         self.area = area
         return None
-    def add_win(self, win):
-        self.win = win
-        return None
 
 
 class Track(object):
@@ -94,6 +93,9 @@ class Track(object):
 
     def get_mr_centroid(self):
         return np.asarray(self.measurements[-1][0])
+
+    def get_cent_origin(self):
+        return np.asarray(self.measurements[-20][0])
 
     def get_mr_head(self):
         return np.asarray(self.measurements[-1][1])
@@ -135,7 +137,7 @@ class Tracker(object):
             # centroid and head
             not_nones = [1 for det in list_of_detections if (det.head is not None)]
 
-            if (len(not_nones)==n_inds):
+            if (len(not_nones)==n_inds) and (len(list_of_detections)==n_inds):
                 linear_assingment(list_of_detections, self.list_of_tracks, full=True)
             # If any new head measurements are missing or None, do linear assignment
             # with only centroid of tracks most recent centroid and head.
